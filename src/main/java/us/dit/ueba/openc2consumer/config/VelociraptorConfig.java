@@ -10,12 +10,13 @@ import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
+import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiBlockingStub;
 
 @Configuration
 public class VelociraptorConfig {
 
     @Bean
-    public VqlApiGrpc.ApiBlockingStub velociraptorStub() throws SSLException {
+    public VqlApiBlockingStub velociraptorStub() throws SSLException {
         // Aquí cargarías tus certificados .pem (api.key, api.crt, ca.crt)
         SslContext sslContext = GrpcSslContexts.forClient()
                 .trustManager(new File("ca.crt"))
@@ -26,6 +27,6 @@ public class VelociraptorConfig {
                 .sslContext(sslContext)
                 .build();
 
-        return ApiGrpc.newBlockingStub(channel);
+        return VqlApiGrpc.newBlockingStub(channel);
     }
 }
