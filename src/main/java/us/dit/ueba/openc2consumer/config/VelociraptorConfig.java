@@ -2,6 +2,7 @@ package us.dit.ueba.openc2consumer.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -9,6 +10,7 @@ import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiBlockingStub;
 
 @Configuration
+@Profile("!test")
 public class VelociraptorConfig {
 
     /* 
@@ -23,7 +25,6 @@ public class VelociraptorConfig {
                 .sslContext(sslContext)
                 .build();
     }*/
-
     @Bean
 
     public ManagedChannel velociraptorChannel() {

@@ -1,11 +1,14 @@
 package us.dit.ueba.openc2consumer.services;
 
+import java.util.Iterator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import us.dit.ueba.openc2consumer.proto.Api.VQLCollectorArgs;
-import us.dit.ueba.openc2consumer.proto.Api.VQLRequest;
+import us.dit.ueba.openc2consumer.proto.Api.VQLResponse;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiBlockingStub;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiStub;
@@ -15,7 +18,16 @@ public class VqlService {
 
     private VqlApiStub asyncStub;
     private VqlApiBlockingStub blockingStub;
+    @Value("${artifacts.path}")
+    private String artifactsPath;
     private static Logger log = LoggerFactory.getLogger(VqlService.class);
+
+    public static enum EvidenceType {
+        USERLOGON,
+        USERSESSION,
+        USERLOGOUT,
+        USERSESSIONDURATION
+    }
 
     /**
      * Inyectamos los stubs de gRPC para poder comunicarnos con Velociraptor.
@@ -32,57 +44,28 @@ public class VqlService {
         return VqlApiGrpc.getServiceDescriptor().toString();
     }
 
-    private String getVqlString() {
-        return "SELECT upsert_client_artifact(\n"
-                + //
-                "    artifact='''{\n"
-                + //
-                "        \"name\": \"Custom.MultiOS.EventLogs.Logons\",\n"
-                + //
-                "        \"type\": \"CLIENT_EVENT\",\n"
-                + //
-                "        \"sources\": [\n"
-                + //
-                "            {\n"
-                + //
-                "                \"name\": \"WindowsLogons\",\n"
-                + //
-                "                \"precondition\": \"SELECT Os FROM info() WHERE Os = 'windows'\",\n"
-                + //
-                "                \"query\": \"SELECT System.TimeCreated.SystemTime AS Timestamp, EventData.TargetUserName AS Username, 'windows' AS OS FROM watch_evtx(log=\\\\\"Security\\\\\") WHERE System.EventID.Value = 4624\"\n"
-                + //
-                "            },\n"
-                + //
-                "            {\n"
-                + //
-                "                \"name\": \"LinuxLogons\",\n"
-                + //
-                "                \"precondition\": \"SELECT Os FROM info() WHERE Os = 'linux'\",\n"
-                + //
-                "                \"query\": \"SELECT timestamp, grep(reg=\\\\\"Accepted\\\\\", string=Line) AS LogonData, 'linux' AS OS FROM watch_syslog(filename=\\\\\"/var/log/auth.log\\\\\") WHERE LogonData\"\n"
-                + //
-                "            }\n"
-                + //
-                "        ]\n"
-                + //
-                "    }'''\n"
-                + //
-                ") FROM scope()";
-    }
+    public void sendQuery(EvidenceType artefact, String name) {
+        try {
+            VQLCollectorArgs args = new ArgsBuilder(artefact, artifactsPath)
+                    .setName(name)
+                    .buildArgs();
+            log.debug("\n Enviando artefacto {} a Velociraptor, con argumentos {}", artefact, args);
+            Iterator<VQLResponse> responseStream = blockingStub.query(args);
 
-    public void queryClients() {
+            // 4. Consumimos la respuesta (aunque upsert_client_artifact no suele devolver filas,
+            // es obligatorio iterar el stream gRPC en Java para que la petición se complete)
+            while (responseStream.hasNext()) {
+                VQLResponse response = responseStream.next();
+                if (response.getLog() != null && !response.getLog().isEmpty()) {
+                    log.info("Log del servidor: " + response.getLog());
+                }
+            }
 
-        VQLRequest request = VQLRequest.newBuilder()
-                .setVQL(getVqlString())
-                .setName("LogonCollector")
-                .build();
-        VQLCollectorArgs args = VQLCollectorArgs.newBuilder()
-                .addQuery(request)
-                .build();
+            log.info("¡Artefacto registrado con éxito en el servidor!");
 
-        // El resultado suele venir en un stream de respuestas
-        /*  stub.query(args).forEachRemaining(response -> {
-             System.out.println("Respuesta: " + response.getResponse());
-        });*/
+        } catch (Exception e) {
+            log.error("Error al registrar el artefacto por gRPC: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
