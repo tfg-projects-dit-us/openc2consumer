@@ -1,17 +1,36 @@
 package us.dit.ueba.openc2consumer.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import us.dit.ueba.openc2consumer.proto.Api.VQLCollectorArgs;
 import us.dit.ueba.openc2consumer.proto.Api.VQLRequest;
+import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiBlockingStub;
+import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiStub;
 
-@Service
-public class LogonService {
+@Service("vqlService")
+public class VqlService {
 
-    @Autowired
-    private VqlApiBlockingStub stub;
+    private VqlApiStub asyncStub;
+    private VqlApiBlockingStub blockingStub;
+    private static Logger log = LoggerFactory.getLogger(VqlService.class);
+
+    /**
+     * Inyectamos los stubs de gRPC para poder comunicarnos con Velociraptor.
+     *
+     * @param stub
+     * @param blockingStub
+     */
+    VqlService(VqlApiStub stub, VqlApiBlockingStub blockingStub) {
+        this.asyncStub = stub;
+        this.blockingStub = blockingStub;
+    }
+
+    public String getServiceDescriptor() {
+        return VqlApiGrpc.getServiceDescriptor().toString();
+    }
 
     private String getVqlString() {
         return "SELECT upsert_client_artifact(\n"
@@ -62,8 +81,8 @@ public class LogonService {
                 .build();
 
         // El resultado suele venir en un stream de respuestas
-        stub.query(args).forEachRemaining(response -> {
-            System.out.println("Respuesta: " + response.getResponse());
-        });
+        /*  stub.query(args).forEachRemaining(response -> {
+             System.out.println("Respuesta: " + response.getResponse());
+        });*/
     }
 }
