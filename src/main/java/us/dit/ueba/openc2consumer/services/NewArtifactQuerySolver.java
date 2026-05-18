@@ -6,19 +6,18 @@ import java.nio.file.Files;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 
 import us.dit.ueba.openc2consumer.services.VqlInterface.EvidenceType;
 
 public class NewArtifactQuerySolver implements QuerySolver {
 
     EvidenceType evidenceType;
-    @Value("${artifacts.path}")
     String artifactsPath;
     private final static Logger log = LoggerFactory.getLogger(NewArtifactQuerySolver.class);
 
-    NewArtifactQuerySolver(EvidenceType evidenceType) {
+    NewArtifactQuerySolver(EvidenceType evidenceType, String artifactsPath) {
         this.evidenceType = evidenceType;
+        this.artifactsPath = artifactsPath;
     }
 
     @Override

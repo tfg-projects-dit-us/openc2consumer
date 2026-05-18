@@ -13,4 +13,8 @@ public interface VqlInterface {
 
     public void startMonitoring(EvidenceType evidenceType);
 
+    public void addUser(EvidenceType evidenceType, String username);
+
+    public void deleteUser(EvidenceType evidenceType, String username);
+
 }

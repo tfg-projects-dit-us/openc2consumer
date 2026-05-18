@@ -49,9 +49,10 @@ public class VqlService implements VqlInterface {
      * @param name
      */
     public void sendNewArtefact(EvidenceType evidenceType) {
-        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_artefact";
+        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_new_artefact";
+        log.debug("\n Enviando artefacto para recogida de evidencias de tipo {} a Velociraptor, con nombre {}", evidenceType, name);
         try {
-            QuerySolver solver = new NewArtifactQuerySolver(EvidenceType.USERLOGON);
+            QuerySolver solver = new NewArtifactQuerySolver(EvidenceType.USERLOGON, artifactsPath);
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
                     .buildArgs();
@@ -81,10 +82,12 @@ public class VqlService implements VqlInterface {
      * @param evidenceType
      */
     public void startMonitoring(EvidenceType evidenceType) {
+        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_start_monitoring";
 
         try {
-            QuerySolver solver = new StartMonitoringQuerySolver(evidenceType);
+            QuerySolver solver = new StartMonitoringQuerySolver(evidenceType, artifactsPath);
             VQLCollectorArgs args = new ArgsBuilder(solver)
+                    .setName(name)
                     .buildArgs();
             log.debug("\n Construyendo petición para arrancar monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
             Iterator<VQLResponse> responseStream = blockingStub.query(args);
@@ -98,10 +101,76 @@ public class VqlService implements VqlInterface {
                 }
             }
 
-            log.info("¡Artefacto registrado con éxito en el servidor!");
+            log.info("Starting Evidence Catch in Velociraptor!");
 
         } catch (Exception e) {
-            log.error("Error al registrar el artefacto por gRPC: " + e.getMessage());
+            log.error("Error in gRPC starting evidence catch: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     *
+     * Añade un usuario a monitorizar en un artefacto ya registrado en el
+     * servidor
+     *
+     * @param evidenceType
+     * @param username
+     */
+    public void addUser(EvidenceType evidenceType, String username) {
+        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_add_user";
+
+        try {
+            QuerySolver solver = new AddUserQuerySolver(evidenceType, artifactsPath);
+            VQLCollectorArgs args = new ArgsBuilder(solver)
+                    .setName(name)
+                    .setVariable("TargetUSer", username)
+                    .buildArgs();
+            log.debug("\n Construyendo petición para arrancar monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
+            Iterator<VQLResponse> responseStream = blockingStub.query(args);
+
+            // 4. Consumimos la respuesta (aunque upsert_client_artifact no suele devolver filas,
+            // es obligatorio iterar el stream gRPC en Java para que la petición se complete)
+            while (responseStream.hasNext()) {
+                VQLResponse response = responseStream.next();
+                if (response.getLog() != null && !response.getLog().isEmpty()) {
+                    log.info("Log del servidor: " + response.getLog());
+                }
+            }
+
+            log.info("Adding user {} to {} monitoring in Velociraptor!", username, evidenceType);
+
+        } catch (Exception e) {
+            log.error("Error in gRPC adding user: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteUser(EvidenceType evidenceType, String username) {
+        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_delete_user";
+
+        try {
+            QuerySolver solver = new DeleteUserQuerySolver(evidenceType, artifactsPath);
+            VQLCollectorArgs args = new ArgsBuilder(solver)
+                    .setName(name)
+                    .setVariable("TargetUSer", username)
+                    .buildArgs();
+            log.debug("\n Construyendo petición para eliminar usuario de monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
+            Iterator<VQLResponse> responseStream = blockingStub.query(args);
+
+            // 4. Consumimos la respuesta (aunque upsert_client_artifact no suele devolver filas,
+            // es obligatorio iterar el stream gRPC en Java para que la petición se complete)
+            while (responseStream.hasNext()) {
+                VQLResponse response = responseStream.next();
+                if (response.getLog() != null && !response.getLog().isEmpty()) {
+                    log.info("Log del servidor: " + response.getLog());
+                }
+            }
+
+            log.info("Deleting user {} from {} monitoring in Velociraptor!", username, evidenceType);
+
+        } catch (Exception e) {
+            log.error("Error in gRPC deleting user: " + e.getMessage());
             e.printStackTrace();
         }
     }

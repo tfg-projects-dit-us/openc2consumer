@@ -1,4 +1,4 @@
 SELECT add_server_table(
     name="Server.UsersLogon",
-    row=dict(Username="UserName")
+    row=dict(Username=TargetUser)
 ) FROM scope()

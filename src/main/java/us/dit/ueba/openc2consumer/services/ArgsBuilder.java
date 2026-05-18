@@ -75,14 +75,14 @@ public class ArgsBuilder {
         }
         if (variables != null) {
             log.debug("Construyendo argumentos con variables: {}", variables.keySet());
-            args = VQLCollectorArgs.newBuilder(args)
+            args = VQLCollectorArgs.newBuilder()
                     .addQuery(request)
                     .addAllEnv(variables.values())
                     .build();
 
         } else {
             log.debug("Construyendo argumentos sin variables");
-            args = VQLCollectorArgs.newBuilder(args)
+            args = VQLCollectorArgs.newBuilder()
                     .addQuery(request)
                     .build();
         }
