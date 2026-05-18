@@ -1,26 +1,18 @@
 SELECT upsert_client_artifact(
     artifact='''{
-        "name": "Custom.MultiOS.Monitor.UserLogons",
-        "description": "Monitorea en tiempo real todos los inicios de sesión exitosos para un usuario específico (ID/Username) en Windows y Linux.",
+        "name": "Custom.MultiOS.Monitor.DynamicUsers",
+        "description": "Monitoriza inicios de sesion cruzando los datos con la tabla de usuarios bajo vigilancia del servidor (UsersLogon).",
         "type": "CLIENT_EVENT",
-        "parameters": [
-            {
-                "name": "TargetUser",
-                "type": "string",
-                "default": "",
-                "description": "El nombre de usuario o ID que se desea rastrear de forma exclusiva."
-            }
-        ],
         "sources": [
             {
                 "name": "WindowsLogons",
                 "precondition": "SELECT Os FROM info() WHERE Os = 'windows'",
-                "query": "SELECT System.TimeCreated.SystemTime AS Timestamp, EventData.TargetUserName AS Username, EventData.TargetDomainName AS Domain, EventData.LogonType AS LogonType, EventData.IpAddress AS SourceIP, 'windows' AS OS FROM watch_evtx(log=\\"Security\\") WHERE System.EventID.Value = 4624 AND EventData.TargetUserName =~ TargetUser"
+                "query": "SELECT System.TimeCreated.SystemTime AS Timestamp, EventData.TargetUserName AS Username, 'windows' AS OS FROM watch_evtx(log=\\"Security\\") WHERE System.EventID.Value = 4624 AND EventData.TargetUserName IN server_table(name=\\"Server.UsersLogon\\")"
             },
             {
                 "name": "LinuxLogons",
                 "precondition": "SELECT Os FROM info() WHERE Os = 'linux'",
-                "query": "SELECT timestamp AS Timestamp, parse_string_with_regex(string=Line, regex=''(?P<Type>Accepted|session opened) for user (?P<User>\\\\S+)'').User AS Username, 'linux' AS OS, Line AS RawLog FROM watch_syslog(filename=\\"/var/log/auth.log\\") WHERE (Line =~ \\"Accepted publickey\\" OR Line =~ \\"Accepted password\\" OR Line =~ \\"session opened\\") AND Username =~ TargetUser"
+                "query": "SELECT timestamp AS Timestamp, parse_string_with_regex(string=Line, regex=''(?P<Type>Accepted|session opened) for user (?P<User>\\\\S+)'').User AS Username, 'linux' AS OS FROM watch_syslog(filename=\\"/var/log/auth.log\\") WHERE (Line =~ \\"Accepted publickey\\" OR Line =~ \\"Accepted password\\" OR Line =~ \\"session opened\\") AND Username IN server_table(name=\\"Server.UsersLogon\\")"
             }
         ]
     }'''

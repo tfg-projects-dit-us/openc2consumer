@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import us.dit.ueba.openc2consumer.config.TestVelociraptorConfig;
+import us.dit.ueba.openc2consumer.services.VqlInterface.EvidenceType;
 import us.dit.ueba.openc2consumer.services.VqlService;
 
 @SpringBootTest
@@ -33,7 +34,7 @@ class Openc2consumerApplicationTests {
     @Test
     void sendQueryToVelociraptor() {
         try {
-            vqlService.sendQuery(VqlService.EvidenceType.USERLOGON, "test_userlogon");
+            vqlService.sendNewArtefact(EvidenceType.USERLOGON);
         } catch (Exception e) {
             log.error("Error sending query to Velociraptor: ", e);
             assertNotNull(e, "Exception should not be null");
