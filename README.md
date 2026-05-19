@@ -107,14 +107,15 @@ src/
 │   │   ├── config/
 │   │   │   └── VelociraptorConfig.java           # Beans gRPC: ManagedChannel, stubs síncrono y asíncrono
 │   │   └── services/
-│   │       ├── VqlInterface.java                 # Interfaz principal con el enum EvidenceType
-│   │       ├── VqlService.java                   # Servicio Spring que envía consultas VQL a Velociraptor vía gRPC
-│   │   ├── ArgsBuilder.java                  # Construye VQLCollectorArgs usando la convención UEBA.SOAR.evidencetype
-│   │   ├── QuerySolver.java                  # Interfaz que define getQuery(): cada implementación devuelve la VQL adecuada
-│   │   ├── StartMonitoringQuerySolver.java   # QuerySolver para iniciar monitorización (tabla Service.evidencetype)
-│   │   ├── NewArtifactQuerySolver.java       # QuerySolver para registrar el artefacto UEBA.SOAR.evidencetype
-│   │       ├── AddUserQuerySolver.java           # QuerySolver para añadir un usuario a la monitorización
-│   │       └── DeleteUserQuerySolver.java        # QuerySolver para eliminar un usuario de la monitorización
+│   │       └── vql/
+│   │           ├── VqlInterface.java                 # Interfaz principal con el enum EvidenceType
+│   │           ├── VqlService.java                   # Servicio Spring que envía consultas VQL a Velociraptor vía gRPC
+│   │           ├── ArgsBuilder.java                  # Construye VQLCollectorArgs usando la convención UEBA.SOAR.evidencetype
+│   │           ├── QuerySolver.java                  # Interfaz que define getQuery(): cada implementación devuelve la VQL adecuada
+│   │           ├── StartMonitoringQuerySolver.java   # QuerySolver para iniciar monitorización (tabla Service.evidencetype)
+│   │           ├── NewArtifactQuerySolver.java       # QuerySolver para registrar el artefacto UEBA.SOAR.evidencetype
+│   │           ├── AddUserQuerySolver.java           # QuerySolver para añadir un usuario a la monitorización
+│   │           └── DeleteUserQuerySolver.java        # QuerySolver para eliminar un usuario de la monitorización
 │   ├── proto/
 │   │   └── api.proto                             # Definición Protobuf del API gRPC de Velociraptor
 │   └── resources/
@@ -124,11 +125,9 @@ src/
 │   ├── java/us/dit/ueba/openc2consumer/
 │   │   ├── config/
 │   │   │   └── TestVelociraptorConfig.java       # Configuración de test: servidor gRPC in-process mock
-│   │   └── Openc2consumerApplicationTests.java   # Tests de integración Spring Boot
+│   │   └── services/
+│   │       └── vql/
+│   │           └── VqlTests.java                 # Tests de las operaciones VQL
 │   └── resources/
 │       └── application.properties                # Propiedades para tests: perfil test, ruta artefactos, log level
-└── target/generated-sources/protobuf/            # Clases Java generadas por el compilador protobuf
-    └── us/dit/ueba/openc2consumer/proto/
-        ├── Api.java                              # Mensajes Protobuf (VQLCollectorArgs, VQLResponse…)
-        └── VqlApiGrpc.java                       # Stubs gRPC generados (blocking, async, future)
 ```

@@ -31,6 +31,7 @@ import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiBlockingStub;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiStub;
 
 @Service("vqlService")
+
 public class VqlService implements VqlInterface {
 
     private VqlApiStub asyncStub;
