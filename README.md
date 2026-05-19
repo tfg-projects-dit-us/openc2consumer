@@ -44,11 +44,22 @@ flowchart LR
 
 ---
 
+## 📋 Configuración necesaria
+
+Los tipos de evidencia disponibles se declaran en el fichero de configuración `application.properties`, en la propiedad `ueba.evidences`, que será un listado de nombres de evidencias.
+
+Para cada uno es necesario guardar el fichero de artefacto en el directorio indicado en la propiedad `artifacts.path`
+
+Convenciones de configuración:
+* El nombre de fichero sigue la convención `evidencetype.artifact`.
+* El nombre del artefacto `UEBA.SOAR.evidencetype`.
+* Si el artefacto va a permitir añadir usuarios dinámicamente a la monitorización, la tabla de usuarios debe llamarse como la evidencia, con el prefijo `Service` (`Service.evidencetype`)
+
+---
+
 ## 📋 Operaciones por evidencia
 
-Los tipos de evidencia disponibles se declaran en el enum `EvidenceType` de `VqlInterface`. Para cada tipo se ofrecen **cuatro operaciones** y **un único fichero de configuración** que es el artefacto.
-El nombre de fichero sigue la convención `evidencetype.artifact`.
-El nombre del artefacto `UEBA.SOAR.evidencetype`.
+Para cada tipo se ofrecen **cuatro operaciones** y **un único fichero de configuración** que es el artefacto.
 
 Las consultas VQL generadas usan como nombre de artefacto `UEBA.SOAR.evidencetype` y como nombre de tabla `Service.evidencetype`.
 
@@ -69,23 +80,20 @@ Las consultas VQL generadas usan como nombre de artefacto `UEBA.SOAR.evidencetyp
 classDiagram
     class VqlInterface {
         <<interface>>
-        +sendNewArtefact(EvidenceType) void
-        +startMonitoring(EvidenceType) void
-        +addUser(EvidenceType, String) void
-        +deleteUser(EvidenceType, String) void
+        +sendNewArtefact(String evidenceType) void
+        +startMonitoring(String evidenceType) void
+        +addUser(String evidenceType, String username) void
+        +deleteUser(String evidenceType, String username) void
     }
-    class EvidenceType {
-        <<enumeration>>
-        USERLOGON
-        USERSESSION
-        USERLOGOUT
-        USERSESSIONDURATION
+    class EvidenceTypes {
+        <<configuration>>
+        +getEvidences() List<String>
     }
     class VqlService {
-        +sendNewArtefact(EvidenceType) void
-        +startMonitoring(EvidenceType) void
-        +addUser(EvidenceType, String) void
-        +deleteUser(EvidenceType, String) void
+        +sendNewArtefact(String evidenceType) void
+        +startMonitoring(String evidenceType) void
+        +addUser(String evidenceType, String username) void
+        +deleteUser(String evidenceType, String username) void
     }
     class QuerySolver {
         <<interface>>
@@ -119,6 +127,7 @@ src/
 │   │   ├── Openc2consumerApplication.java        # Punto de entrada Spring Boot
 │   │   ├── config/
 │   │   │   └── VelociraptorConfig.java           # Beans gRPC: ManagedChannel, stubs síncrono y asíncrono
+│   │   │   └── EvidenceTypes.java                # Crea la lista de evidencias disponibles, a partir de application.properties
 │   │   └── services/
 │   │       └── vql/
 │   │           ├── VqlInterface.java                 # Interfaz principal con el enum EvidenceType
@@ -132,7 +141,7 @@ src/
 │   ├── proto/
 │   │   └── api.proto                             # Definición Protobuf del API gRPC de Velociraptor
 │   └── resources/
-│       ├── application.properties                # Configuración: dirección del servidor y ruta de artefactos
+│       ├── application.properties                # Configuración: velociraptor y evidencias
 │       └── UEBA.SOAR.logon                       # Fichero de artefacto de ejemplo (tipo de evidencia: logon)
 ├── test/
 │   ├── java/us/dit/ueba/openc2consumer/

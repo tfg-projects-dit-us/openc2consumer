@@ -10,6 +10,12 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ConfigurationProperties(prefix = "ueba")
+/**
+ * Esta clase se encarga de mapear la propiedad "ueba.evidences" del
+ * application.properties a una lista de strings. Spring Boot se encargará de
+ * inyectar el valor de "ueba.evidences" en esta clase, y luego podrás acceder a
+ * esa lista desde VqlService para construir consultas vql
+ */
 public class EvidenceTypes {
 
     private Logger log = LoggerFactory.getLogger(EvidenceTypes.class);
