@@ -1,40 +1,22 @@
 package us.dit.ueba.openc2consumer.services.vql;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-
-import us.dit.ueba.openc2consumer.services.vql.VqlInterface.EvidenceType;
-
 public class StartMonitoringQuerySolver implements QuerySolver {
 
-    EvidenceType evidenceType;
-    String artifactsPath;
     private final static org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(StartMonitoringQuerySolver.class);
 
-    StartMonitoringQuerySolver(VqlService.EvidenceType evidenceType, String artifactsPath) {
-        this.evidenceType = evidenceType;
-        this.artifactsPath = artifactsPath;
-    }
-
+    /**
+     * Esta consulta VQL se utiliza para iniciar la monitorización de un
+     * artefacto específico en Velociraptor. La consulta utiliza la función
+     * start_monitoring para comenzar a monitorear un artefacto, donde el nombre
+     * del artefacto se pasa como una variable de entorno (ArtifactName). La
+     * consulta se ejecuta dentro del contexto de scope(), lo que significa que
+     * se aplicará a los hosts o entidades que estén dentro del alcance de la
+     * consulta.
+     */
     @Override
     public String getQuery() {
-        log.debug("Obteniendo la consulta VQL para StartMonitoring");
-        String filename = artifactsPath + File.separator + evidenceType.toString().toLowerCase() + ".monitoring";
-        log.debug("Archivo de consulta VQL: " + filename);
-        File file = new File(filename);
-        String query = null;
-        if (!file.exists()) {
-            log.error("Archivo de consulta no encontrado: " + filename);
-            throw new IllegalArgumentException("Archivo de consulta no encontrado: " + filename);
-        }
-        try {
-            query = Files.readString(file.toPath());
-        } catch (IOException e) {
-            log.error("Error reading query file: " + filename, e);
-            throw new IllegalArgumentException("Error reading query file: " + filename, e);
-        }
-        return query;
-    }
+        log.debug("VQL para iniciar la monitorización de un artefacto específico, con el nombre del artefacto como parámetro de la consulta VQL");
+        return "SELECT upsert_client_monitoring(artifact_name=ArtifactName) FROM scope()";
 
+    }
 }

@@ -1,43 +1,22 @@
 package us.dit.ueba.openc2consumer.services.vql;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import us.dit.ueba.openc2consumer.services.vql.VqlInterface.EvidenceType;
-
 public class AddUserQuerySolver implements QuerySolver {
 
-    EvidenceType evidenceType;
-    String artifactsPath;
-    private final static Logger log = LoggerFactory.getLogger(AddUserQuerySolver.class);
+    private final static org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AddUserQuerySolver.class);
 
-    AddUserQuerySolver(EvidenceType evidenceType, String artifactsPath) {
-        this.evidenceType = evidenceType;
-        this.artifactsPath = artifactsPath;
-    }
-
+    /**
+     * Esta consulta VQL se utiliza para agregar un usuario a una tabla en
+     * Velociraptor. La consulta utiliza la función add_server_table para
+     * agregar una fila a una tabla específica, donde el nombre de la tabla y el
+     * usuario a agregar se pasan como variables de entorno (TableName y
+     * TargetUser, respectivamente). La consulta se ejecuta dentro del contexto
+     * de scope(), lo que significa que se aplicará a los hosts o entidades que
+     * estén dentro del alcance de la consulta.
+     */
     @Override
     public String getQuery() {
-        log.debug("Obteniendo la consulta VQL");
-        String filename = artifactsPath + File.separator + evidenceType.toString().toLowerCase() + ".add";
-        log.debug("Archivo de consulta VQL: " + filename);
-        File file = new File(filename);
-        String query = null;
-        if (!file.exists()) {
-            log.error("Archivo de consulta no encontrado: " + filename);
-            throw new IllegalArgumentException("Archivo de consulta no encontrado: " + filename);
-        }
-        try {
-            query = Files.readString(file.toPath());
-        } catch (IOException e) {
-            log.error("Error reading query file: " + filename, e);
-            throw new IllegalArgumentException("Error reading query file: " + filename, e);
-        }
-        return query;
+        log.debug("VQL para incluir un usuario en una tabla, ambos como parámetros de la consulta VQL");
+        return "SELECT add_server_table(name=TableName,row=dict(Username=TargetUser)) FROM scope()";
     }
 
 }

@@ -13,7 +13,7 @@
 
 Este componente forma parte del proyecto [SOAR4FUEBA](https://github.com/tfg-projects-dit-us/SOAR4FUEBA), una solución para la Orquestación, Automatización y Respuesta de seguridad (SOAR) que utiliza los estándares del OMG (BPMN y DMN) para la orquestación y automatización de procesos de seguridad en una organización.
 
-Está desarrollada en el marco del proyecto de investigación PID2024-155581OB-C21 – Forensic UEBA: Detección temprana de ciberataques con custodia forense de evidencias digitales en entornos corporativos (FUEBA+)
+Está desarrollado en el marco del proyecto de investigación PID2024-155581OB-C21 – Forensic UEBA: Detección temprana de ciberataques con custodia forense de evidencias digitales en entornos corporativos (FUEBA+)
 ---
 
 ## 🔌 Cliente Velociraptor
@@ -34,7 +34,7 @@ flowchart LR
     OC2([Motor OpenC2]) -->|Comando OpenC2| VqlService
     subgraph openc2consumer [openc2consumer · Spring Boot]
         VqlService["⚙️ VqlService"] --> QS["🔍 QuerySolver\n(New/Start/Add/Delete)"]
-        QS -->|lee fichero .artifact / .monitoring| FS[(📂 Artefactos VQL)]
+        QS -->|lee fichero de artefacto| FS[(📂 Artefactos VQL)]
         VqlService --> AB["🔧 ArgsBuilder\nVQLCollectorArgs"]
     end
     AB -->|gRPC / VQL| VR([🦖 Velociraptor])
@@ -44,14 +44,18 @@ flowchart LR
 
 ## 📋 Operaciones por evidencia
 
-Los tipos de evidencia disponibles se declaran en el enum `EvidenceType` de `VqlInterface`. Para cada tipo se ofrecen **cuatro operaciones**:
+Los tipos de evidencia disponibles se declaran en el enum `EvidenceType` de `VqlInterface`. Para cada tipo se ofrecen **cuatro operaciones** y **un único fichero de configuración** que es el artefacto.
+El nombre de fichero sigue la convención `evidencetype.artifact`.
+El nombre del artefacto `UEBA.SOAR.evidencetype`.
 
-| # | Operación | Consulta VQL |
-|---|-----------|--------------|
-| 1 | 📦 Cargar artefacto | `{evidencetype}_openc2_soar_new_artefact` |
-| 2 | ▶️ Iniciar monitorización | `{evidencetype}_openc2_soar_start_monitoring` |
-| 3 | ➕ Añadir usuario | `{evidencetype}_openc2_soar_add_user` |
-| 4 | ➖ Eliminar usuario | `{evidencetype}_openc2_soar_delete_user` |
+Las consultas VQL generadas usan como nombre de artefacto `UEBA.SOAR.evidencetype` y como nombre de tabla `Service.evidencetype`.
+
+| # | Operación | Descripción |
+|---|-----------|-------------|
+| 1 | 📦 Cargar artefacto | Registra el artefacto `UEBA.SOAR.evidencetype` en Velociraptor |
+| 2 | ▶️ Iniciar monitorización | Lanza la recolección sobre la tabla `Service.evidencetype` |
+| 3 | ➕ Añadir usuario | Añade un usuario a la monitorización activa |
+| 4 | ➖ Eliminar usuario | Elimina un usuario de la monitorización activa |
 
 ---
 
@@ -103,17 +107,17 @@ src/
 │   │   └── services/
 │   │       ├── VqlInterface.java                 # Interfaz principal con el enum EvidenceType
 │   │       ├── VqlService.java                   # Servicio Spring que envía consultas VQL a Velociraptor vía gRPC
-│   │       ├── ArgsBuilder.java                  # Construye VQLCollectorArgs leyendo la query VQL desde fichero .artifact
-│   │       ├── QuerySolver.java                  # Interfaz que define getQuery(): cada implementación devuelve la VQL adecuada
-│   │       ├── StartMonitoringQuerySolver.java   # QuerySolver para iniciar monitorización (lee fichero .monitoring)
-│   │       ├── NewArtifactQuerySolver.java       # QuerySolver para registrar un nuevo artefacto en Velociraptor
+│   │   ├── ArgsBuilder.java                  # Construye VQLCollectorArgs usando la convención UEBA.SOAR.evidencetype
+│   │   ├── QuerySolver.java                  # Interfaz que define getQuery(): cada implementación devuelve la VQL adecuada
+│   │   ├── StartMonitoringQuerySolver.java   # QuerySolver para iniciar monitorización (tabla Service.evidencetype)
+│   │   ├── NewArtifactQuerySolver.java       # QuerySolver para registrar el artefacto UEBA.SOAR.evidencetype
 │   │       ├── AddUserQuerySolver.java           # QuerySolver para añadir un usuario a la monitorización
 │   │       └── DeleteUserQuerySolver.java        # QuerySolver para eliminar un usuario de la monitorización
 │   ├── proto/
 │   │   └── api.proto                             # Definición Protobuf del API gRPC de Velociraptor
 │   └── resources/
 │       ├── application.properties                # Configuración: dirección del servidor y ruta de artefactos
-│       └── logon.artifact                        # Consulta VQL de ejemplo para monitorización de logons
+│       └── UEBA.SOAR.logon                       # Fichero de artefacto de ejemplo (tipo de evidencia: logon)
 ├── test/
 │   ├── java/us/dit/ueba/openc2consumer/
 │   │   ├── config/

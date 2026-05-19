@@ -85,9 +85,12 @@ public class VqlService implements VqlInterface {
         String name = evidenceType.toString().toLowerCase() + "_openc2_soar_start_monitoring";
 
         try {
-            QuerySolver solver = new StartMonitoringQuerySolver(evidenceType, artifactsPath);
+            //QuerySolver solver = new StartMonitoringQuerySolver(evidenceType, artifactsPath);
+            QuerySolver solver = new StartMonitoringQuerySolver();
+            String artifactName = "UEBA.SOAR." + evidenceType.toString().toLowerCase(); // El nombre del artefacto es el mismo que el del tipo de evidencia
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
+                    .setVariable("ArtifactName", artifactName)
                     .buildArgs();
             log.debug("\n Construyendo petición para arrancar monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
             Iterator<VQLResponse> responseStream = blockingStub.query(args);
@@ -121,9 +124,11 @@ public class VqlService implements VqlInterface {
         String name = evidenceType.toString().toLowerCase() + "_openc2_soar_add_user";
 
         try {
-            QuerySolver solver = new AddUserQuerySolver(evidenceType, artifactsPath);
+            QuerySolver solver = new AddUserQuerySolver();
+            String tableName = "Server." + evidenceType.toString().toLowerCase(); // El nombre de la tabla es el mismo que el del tipo de evidencia, pero con el prefijo "Server."
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
+                    .setVariable("TableName", tableName)
                     .setVariable("TargetUSer", username)
                     .buildArgs();
             log.debug("\n Construyendo petición para arrancar monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
@@ -150,9 +155,11 @@ public class VqlService implements VqlInterface {
         String name = evidenceType.toString().toLowerCase() + "_openc2_soar_delete_user";
 
         try {
-            QuerySolver solver = new DeleteUserQuerySolver(evidenceType, artifactsPath);
+            QuerySolver solver = new DeleteUserQuerySolver();
+            String tableName = "Server." + evidenceType.toString().toLowerCase(); // El nombre de la tabla es el mismo que el del tipo de evidencia, pero con el prefijo "Server."
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
+                    .setVariable("TableName", tableName)
                     .setVariable("TargetUSer", username)
                     .buildArgs();
             log.debug("\n Construyendo petición para eliminar usuario de monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
