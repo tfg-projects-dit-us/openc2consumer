@@ -1,4 +1,4 @@
-package us.dit.ueba.openc2consumer;
+package us.dit.ueba.openc2consumer.services.vql;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
@@ -10,17 +10,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import us.dit.ueba.openc2consumer.config.TestVelociraptorConfig;
-import us.dit.ueba.openc2consumer.services.VqlInterface.EvidenceType;
-import us.dit.ueba.openc2consumer.services.VqlService;
+import us.dit.ueba.openc2consumer.services.vql.VqlInterface.EvidenceType;
 
 @SpringBootTest
 @Import(TestVelociraptorConfig.class)
 @ActiveProfiles("test")
-class Openc2consumerApplicationTests {
+class VqlTests {
 
     @Autowired
     private VqlService vqlService;
-    private static Logger log = LoggerFactory.getLogger(Openc2consumerApplicationTests.class);
+    private static Logger log = LoggerFactory.getLogger(VqlTests.class);
 
     @Test
     void velociraptorServiceDescription() {

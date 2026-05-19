@@ -1,29 +1,26 @@
-package us.dit.ueba.openc2consumer.services;
+package us.dit.ueba.openc2consumer.services.vql;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import us.dit.ueba.openc2consumer.services.vql.VqlInterface.EvidenceType;
 
-import us.dit.ueba.openc2consumer.services.VqlInterface.EvidenceType;
-
-public class AddUserQuerySolver implements QuerySolver {
+public class StartMonitoringQuerySolver implements QuerySolver {
 
     EvidenceType evidenceType;
     String artifactsPath;
-    private final static Logger log = LoggerFactory.getLogger(AddUserQuerySolver.class);
+    private final static org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(StartMonitoringQuerySolver.class);
 
-    AddUserQuerySolver(EvidenceType evidenceType, String artifactsPath) {
+    StartMonitoringQuerySolver(VqlService.EvidenceType evidenceType, String artifactsPath) {
         this.evidenceType = evidenceType;
         this.artifactsPath = artifactsPath;
     }
 
     @Override
     public String getQuery() {
-        log.debug("Obteniendo la consulta VQL");
-        String filename = artifactsPath + File.separator + evidenceType.toString().toLowerCase() + ".add";
+        log.debug("Obteniendo la consulta VQL para StartMonitoring");
+        String filename = artifactsPath + File.separator + evidenceType.toString().toLowerCase() + ".monitoring";
         log.debug("Archivo de consulta VQL: " + filename);
         File file = new File(filename);
         String query = null;

@@ -1,4 +1,4 @@
-package us.dit.ueba.openc2consumer.services;
+package us.dit.ueba.openc2consumer.services.vql;
 
 public interface VqlInterface {
 

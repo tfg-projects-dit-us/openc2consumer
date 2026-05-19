@@ -1,4 +1,4 @@
-package us.dit.ueba.openc2consumer.services;
+package us.dit.ueba.openc2consumer.services.vql;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,7 +7,7 @@ import java.nio.file.Files;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import us.dit.ueba.openc2consumer.services.VqlInterface.EvidenceType;
+import us.dit.ueba.openc2consumer.services.vql.VqlInterface.EvidenceType;
 
 public class NewArtifactQuerySolver implements QuerySolver {
 

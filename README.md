@@ -1,23 +1,97 @@
-# OpenC2 Consumer 
+# 🛡️ OpenC2 Consumer
 
-Esta aplicación es un agente que por un lado recibe comandos openC2 desde el motor de procesos por otro ejecuta VQL en el servidor velociraptor que se configure
+> Agente SOAR que recibe comandos **OpenC2** desde el motor de procesos y los traduce en consultas **VQL** ejecutadas sobre el servidor [Velociraptor](https://docs.velociraptor.app/) configurado.
 
-## Cliente Velociraptor
-Ha sido encesario crear el Stub gRpc, que se ha hecho a partir de api.proto de velociraptor
-Se ha usado mvn clean compile, y se crean las clases en target, a partir del fichero api.proto
-El stub cliente se llama VqlApiGrpc
-Para los tests se ha usado un mock del servidor velociraptor, sólo está comprobado que las invocaciones son correctas
+![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen?logo=springboot)
+![gRPC](https://img.shields.io/badge/gRPC-1.77-blue?logo=grpc)
+![Maven](https://img.shields.io/badge/Maven-3.9-red?logo=apachemaven)
 
-## Operaciones para una evidencia
-Los tipos de evidencias disponibles están declarados en  EvidenceType (Interfaz VqlInterface)
-Para cada evidencia se definen las siguientes operaciones:
-Carga del artefacto (consulta llamada: evidencetype_openc2_soar_new_artefact)
-Inicio de la monitorización de esa evidencia (consulta llamada: evidencetype_openc2_soar_start_monitoring )
-Añadir un usuario a la tabla de usuarios para los que se recoge esa evidencia (consulta llamada: evidencetype_openc2_soar_add_user)
-Eliminar un usuario de la tabla de usuarios para los que se recoge esa evidencia (consutla llamada: evidencetype_openc2_soar_delete_user)
+---
 
+## Contexto
 
-## Arquitectura de la solución
+Este componente forma parte del proyecto [SOAR4FUEBA](https://github.com/tfg-projects-dit-us/SOAR4FUEBA), una solución para la Orquestación, Automatización y Respuesta de seguridad (SOAR) que utiliza los estándares del OMG (BPMN y DMN) para la orquestación y automatización de procesos de seguridad en una organización.
+
+Está desarrollada en el marco del proyecto de investigación PID2024-155581OB-C21 – Forensic UEBA: Detección temprana de ciberataques con custodia forense de evidencias digitales en entornos corporativos (FUEBA+)
+---
+
+## 🔌 Cliente Velociraptor
+
+El stub gRPC se ha generado a partir del fichero `api.proto` de Velociraptor mediante `mvn clean compile`. Las clases generadas se crean en `target/generated-sources/protobuf/`:
+
+- **`Api.java`** — mensajes Protobuf (`VQLCollectorArgs`, `VQLResponse`…)
+- **`VqlApiGrpc.java`** — stub cliente (`VqlApiBlockingStub`, `VqlApiStub`)
+
+Para los tests se usa un servidor **gRPC in-process mock** (`InProcessServerBuilder`), por lo que no se requiere un Velociraptor real en el entorno de desarrollo (pruebas unidad).
+
+---
+
+## 🗺️ Flujo de la aplicación
+
+```mermaid
+flowchart LR
+    OC2([Motor OpenC2]) -->|Comando OpenC2| VqlService
+    subgraph openc2consumer [openc2consumer · Spring Boot]
+        VqlService["⚙️ VqlService"] --> QS["🔍 QuerySolver\n(New/Start/Add/Delete)"]
+        QS -->|lee fichero .artifact / .monitoring| FS[(📂 Artefactos VQL)]
+        VqlService --> AB["🔧 ArgsBuilder\nVQLCollectorArgs"]
+    end
+    AB -->|gRPC / VQL| VR([🦖 Velociraptor])
+```
+
+---
+
+## 📋 Operaciones por evidencia
+
+Los tipos de evidencia disponibles se declaran en el enum `EvidenceType` de `VqlInterface`. Para cada tipo se ofrecen **cuatro operaciones**:
+
+| # | Operación | Consulta VQL |
+|---|-----------|--------------|
+| 1 | 📦 Cargar artefacto | `{evidencetype}_openc2_soar_new_artefact` |
+| 2 | ▶️ Iniciar monitorización | `{evidencetype}_openc2_soar_start_monitoring` |
+| 3 | ➕ Añadir usuario | `{evidencetype}_openc2_soar_add_user` |
+| 4 | ➖ Eliminar usuario | `{evidencetype}_openc2_soar_delete_user` |
+
+---
+
+## 🏗️ Arquitectura de la solución
+
+### Diagrama de componentes
+
+```mermaid
+classDiagram
+    class VqlService {
+        +sendQuery(EvidenceType, String)
+        +getServiceDescriptor()
+    }
+    class VqlInterface {
+        <<interface>>
+        +EvidenceType
+    }
+    class QuerySolver {
+        <<interface>>
+        +getQuery() String
+    }
+    class ArgsBuilder {
+        +buildArgs() VQLCollectorArgs
+        +setVariable(key, value)
+    }
+    class NewArtifactQuerySolver { +getQuery() }
+    class StartMonitoringQuerySolver { +getQuery() }
+    class AddUserQuerySolver { +getQuery() }
+    class DeleteUserQuerySolver { +getQuery() }
+
+    VqlService --> ArgsBuilder
+    VqlService ..|> VqlInterface
+    ArgsBuilder --> QuerySolver
+    QuerySolver <|.. NewArtifactQuerySolver
+    QuerySolver <|.. StartMonitoringQuerySolver
+    QuerySolver <|.. AddUserQuerySolver
+    QuerySolver <|.. DeleteUserQuerySolver
+```
+
+### Estructura de ficheros
 
 ```
 src/
