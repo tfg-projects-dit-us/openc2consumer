@@ -17,6 +17,7 @@
  */
 package us.dit.ueba.openc2consumer.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -24,7 +25,6 @@ import org.springframework.context.annotation.Profile;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
-import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiBlockingStub;
 
 @Configuration
 @Profile("!test")
@@ -41,7 +41,7 @@ public class VelociraptorConfig {
         return NettyChannelBuilder.forAddress("localhost", 8000)
                 .sslContext(sslContext)
                 .build();
-    }*/
+    }
     @Bean
 
     public ManagedChannel velociraptorChannel() {
@@ -52,6 +52,31 @@ public class VelociraptorConfig {
 
     @Bean
     public VqlApiBlockingStub velociraptorBlockingStub(ManagedChannel channel) {
+        return VqlApiGrpc.newBlockingStub(channel);
+    }
+
+    @Bean
+    public VqlApiGrpc.VqlApiStub velociraptorAsyncStub(ManagedChannel channel) {
+        return VqlApiGrpc.newStub(channel);
+    }
+     */
+    // 1. Leemos el host y el puerto desde el archivo properties
+    @Value("${velociraptor.host:localhost}")
+    private String host;
+
+    @Value("${velociraptor.port:8001}")
+    private int port;
+
+    @Bean
+    public ManagedChannel velociraptorChannel() {
+        // 2. Usamos las variables en lugar de los textos fijos
+        return ManagedChannelBuilder.forAddress(host, port)
+                .usePlaintext()
+                .build();
+    }
+
+    @Bean
+    public VqlApiGrpc.VqlApiBlockingStub velociraptorBlockingStub(ManagedChannel channel) {
         return VqlApiGrpc.newBlockingStub(channel);
     }
 
