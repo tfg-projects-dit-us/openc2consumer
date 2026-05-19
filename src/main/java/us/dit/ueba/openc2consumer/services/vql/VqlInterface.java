@@ -19,19 +19,20 @@ package us.dit.ueba.openc2consumer.services.vql;
 
 public interface VqlInterface {
 
+    /* 
     public static enum EvidenceType {
         USERLOGON,
         USERSESSION,
         USERLOGOUT,
         USERSESSIONDURATION
     }
+     */
+    public void sendNewArtefact(String evidenceType);
 
-    public void sendNewArtefact(EvidenceType evidenceType);
+    public void startMonitoring(String evidenceType);
 
-    public void startMonitoring(EvidenceType evidenceType);
+    public void addUser(String evidenceType, String username);
 
-    public void addUser(EvidenceType evidenceType, String username);
-
-    public void deleteUser(EvidenceType evidenceType, String username);
+    public void deleteUser(String evidenceType, String username);
 
 }

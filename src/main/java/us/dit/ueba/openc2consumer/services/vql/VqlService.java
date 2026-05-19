@@ -21,9 +21,11 @@ import java.util.Iterator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import us.dit.ueba.openc2consumer.config.EvidenceTypes;
 import us.dit.ueba.openc2consumer.proto.Api.VQLCollectorArgs;
 import us.dit.ueba.openc2consumer.proto.Api.VQLResponse;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
@@ -38,6 +40,8 @@ public class VqlService implements VqlInterface {
     private VqlApiBlockingStub blockingStub;
     @Value("${artifacts.path}")
     private String artifactsPath;
+    @Autowired
+    private EvidenceTypes evidenceTypes;
 
     private static Logger log = LoggerFactory.getLogger(VqlService.class);
 
@@ -66,11 +70,16 @@ public class VqlService implements VqlInterface {
      * @param artefact
      * @param name
      */
-    public void sendNewArtefact(EvidenceType evidenceType) {
-        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_new_artefact";
+    public void sendNewArtefact(String evidenceType) {
+        if (!isValidEvidenceType(evidenceType)) {
+            log.error("Invalid evidence type: " + evidenceType);
+            throw new IllegalArgumentException("Invalid evidence type: " + evidenceType);
+        }
+
+        String name = evidenceType.toLowerCase() + "_openc2_soar_new_artefact";
         log.debug("\n Enviando artefacto para recogida de evidencias de tipo {} a Velociraptor, con nombre {}", evidenceType, name);
         try {
-            QuerySolver solver = new NewArtifactQuerySolver(EvidenceType.USERLOGON, artifactsPath);
+            QuerySolver solver = new NewArtifactQuerySolver(evidenceType.toLowerCase(), artifactsPath);
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
                     .buildArgs();
@@ -90,7 +99,7 @@ public class VqlService implements VqlInterface {
 
         } catch (Exception e) {
             log.error("Error al registrar el artefacto por gRPC: " + e.getMessage());
-            e.printStackTrace();
+            throw new RuntimeException("Error al registrar el artefacto por gRPC", e);
         }
     }
 
@@ -99,13 +108,17 @@ public class VqlService implements VqlInterface {
      *
      * @param evidenceType
      */
-    public void startMonitoring(EvidenceType evidenceType) {
-        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_start_monitoring";
+    public void startMonitoring(String evidenceType) {
+        if (!isValidEvidenceType(evidenceType)) {
+            log.error("Invalid evidence type: " + evidenceType);
+            throw new IllegalArgumentException("Invalid evidence type: " + evidenceType);
+        }
+        String name = evidenceType.toLowerCase() + "_openc2_soar_start_monitoring";
 
         try {
             //QuerySolver solver = new StartMonitoringQuerySolver(evidenceType, artifactsPath);
             QuerySolver solver = new StartMonitoringQuerySolver();
-            String artifactName = "UEBA.SOAR." + evidenceType.toString().toLowerCase(); // El nombre del artefacto es el mismo que el del tipo de evidencia
+            String artifactName = "UEBA.SOAR." + evidenceType.toLowerCase(); // El nombre del artefacto es el mismo que el del tipo de evidencia
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
                     .setVariable("ArtifactName", artifactName)
@@ -126,7 +139,7 @@ public class VqlService implements VqlInterface {
 
         } catch (Exception e) {
             log.error("Error in gRPC starting evidence catch: " + e.getMessage());
-            e.printStackTrace();
+            throw new RuntimeException("Error in gRPC starting evidence catch", e);
         }
     }
 
@@ -138,12 +151,16 @@ public class VqlService implements VqlInterface {
      * @param evidenceType
      * @param username
      */
-    public void addUser(EvidenceType evidenceType, String username) {
-        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_add_user";
+    public void addUser(String evidenceType, String username) {
+        if (!isValidEvidenceType(evidenceType)) {
+            log.error("Invalid evidence type: " + evidenceType);
+            throw new IllegalArgumentException("Invalid evidence type: " + evidenceType);
+        }
+        String name = evidenceType.toLowerCase() + "_openc2_soar_add_user";
 
         try {
             QuerySolver solver = new AddUserQuerySolver();
-            String tableName = "Server." + evidenceType.toString().toLowerCase(); // El nombre de la tabla es el mismo que el del tipo de evidencia, pero con el prefijo "Server."
+            String tableName = "Server." + evidenceType.toLowerCase(); // El nombre de la tabla es el mismo que el del tipo de evidencia, pero con el prefijo "Server."
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
                     .setVariable("TableName", tableName)
@@ -169,12 +186,16 @@ public class VqlService implements VqlInterface {
         }
     }
 
-    public void deleteUser(EvidenceType evidenceType, String username) {
-        String name = evidenceType.toString().toLowerCase() + "_openc2_soar_delete_user";
+    public void deleteUser(String evidenceType, String username) {
+        if (!isValidEvidenceType(evidenceType)) {
+            log.error("Invalid evidence type: " + evidenceType);
+            throw new IllegalArgumentException("Invalid evidence type: " + evidenceType);
+        }
+        String name = evidenceType.toLowerCase() + "_openc2_soar_delete_user";
 
         try {
             QuerySolver solver = new DeleteUserQuerySolver();
-            String tableName = "Server." + evidenceType.toString().toLowerCase(); // El nombre de la tabla es el mismo que el del tipo de evidencia, pero con el prefijo "Server."
+            String tableName = "Server." + evidenceType.toLowerCase(); // El nombre de la tabla es el mismo que el del tipo de evidencia, pero con el prefijo "Server."
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
                     .setVariable("TableName", tableName)
@@ -198,5 +219,9 @@ public class VqlService implements VqlInterface {
             log.error("Error in gRPC deleting user: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    boolean isValidEvidenceType(String evidenceType) {
+        return evidenceTypes.getEvidences().contains(evidenceType.toString().toLowerCase());
     }
 }

@@ -18,6 +18,7 @@
 package us.dit.ueba.openc2consumer.services.vql;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import us.dit.ueba.openc2consumer.config.TestVelociraptorConfig;
-import us.dit.ueba.openc2consumer.services.vql.VqlInterface.EvidenceType;
 
 @SpringBootTest
 @Import(TestVelociraptorConfig.class)
@@ -50,7 +50,7 @@ class VqlTests {
     @Test
     void sendArtifactToVelociraptor() {
         try {
-            vqlService.sendNewArtefact(EvidenceType.USERLOGON);
+            vqlService.sendNewArtefact("userlogon");
         } catch (Exception e) {
             log.error("Error sending artifact to Velociraptor: ", e);
             assertNotNull(e, "Exception should not be null");
@@ -60,7 +60,7 @@ class VqlTests {
     @Test
     void startMonitoringInVelociraptor() {
         try {
-            vqlService.startMonitoring(EvidenceType.USERLOGON);
+            vqlService.startMonitoring("userlogon");
         } catch (Exception e) {
             log.error("Error starting monitoring in Velociraptor: ", e);
             assertNotNull(e, "Exception should not be null");
@@ -70,7 +70,7 @@ class VqlTests {
     @Test
     void addUserInVelociraptor() {
         try {
-            vqlService.addUser(EvidenceType.USERLOGON, "testuser");
+            vqlService.addUser("userlogon", "testuser");
         } catch (Exception e) {
             log.error("Error adding user in Velociraptor: ", e);
             assertNotNull(e, "Exception should not be null");
@@ -80,10 +80,26 @@ class VqlTests {
     @Test
     void deleteUserInVelociraptor() {
         try {
-            vqlService.deleteUser(EvidenceType.USERLOGON, "testuser");
+            vqlService.deleteUser("userlogon", "testuser");
         } catch (Exception e) {
             log.error("Error deleting user in Velociraptor: ", e);
             assertNotNull(e, "Exception should not be null");
         }
+    }
+
+    @Test
+    void deleteUserWithInvalidEvidenceTypeThrowsException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> vqlService.deleteUser("invalidtype", "testuser"),
+                "Se debe lanzar IllegalArgumentException cuando el tipo de evidencia no es válido");
+    }
+
+    @Test
+    void sendNewArtefactWithMissingFileThrowsException() {
+
+        assertThrows(RuntimeException.class,
+                () -> vqlService.sendNewArtefact("usersession"),
+                "Se debe lanzar IllegalArgumentException cuando el fichero de artefacto no existe");
+
     }
 }

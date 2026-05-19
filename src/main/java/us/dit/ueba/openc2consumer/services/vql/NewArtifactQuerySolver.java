@@ -24,15 +24,13 @@ import java.nio.file.Files;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import us.dit.ueba.openc2consumer.services.vql.VqlInterface.EvidenceType;
-
 public class NewArtifactQuerySolver implements QuerySolver {
 
-    EvidenceType evidenceType;
+    String evidenceType;
     String artifactsPath;
     private final static Logger log = LoggerFactory.getLogger(NewArtifactQuerySolver.class);
 
-    NewArtifactQuerySolver(EvidenceType evidenceType, String artifactsPath) {
+    NewArtifactQuerySolver(String evidenceType, String artifactsPath) {
         this.evidenceType = evidenceType;
         this.artifactsPath = artifactsPath;
     }
@@ -40,7 +38,7 @@ public class NewArtifactQuerySolver implements QuerySolver {
     @Override
     public String getQuery() {
         log.debug("Obteniendo la consulta VQL");
-        String filename = artifactsPath + File.separator + evidenceType.toString().toLowerCase() + ".artifact";
+        String filename = artifactsPath + File.separator + evidenceType.toLowerCase() + ".artifact";
         log.debug("Archivo de consulta VQL: " + filename);
         File file = new File(filename);
         String query = null;
