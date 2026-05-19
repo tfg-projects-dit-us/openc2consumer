@@ -6,6 +6,7 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen?logo=springboot)
 ![gRPC](https://img.shields.io/badge/gRPC-1.77-blue?logo=grpc)
 ![Maven](https://img.shields.io/badge/Maven-3.9-red?logo=apachemaven)
+![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen?logo=apache)
 
 ---
 
