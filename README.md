@@ -67,13 +67,25 @@ Las consultas VQL generadas usan como nombre de artefacto `UEBA.SOAR.evidencetyp
 
 ```mermaid
 classDiagram
-    class VqlService {
-        +sendQuery(EvidenceType, String)
-        +getServiceDescriptor()
-    }
     class VqlInterface {
         <<interface>>
-        +EvidenceType
+        +sendNewArtefact(EvidenceType) void
+        +startMonitoring(EvidenceType) void
+        +addUser(EvidenceType, String) void
+        +deleteUser(EvidenceType, String) void
+    }
+    class EvidenceType {
+        <<enumeration>>
+        USERLOGON
+        USERSESSION
+        USERLOGOUT
+        USERSESSIONDURATION
+    }
+    class VqlService {
+        +sendNewArtefact(EvidenceType) void
+        +startMonitoring(EvidenceType) void
+        +addUser(EvidenceType, String) void
+        +deleteUser(EvidenceType, String) void
     }
     class QuerySolver {
         <<interface>>
@@ -83,13 +95,14 @@ classDiagram
         +buildArgs() VQLCollectorArgs
         +setVariable(key, value)
     }
-    class NewArtifactQuerySolver { +getQuery() }
-    class StartMonitoringQuerySolver { +getQuery() }
-    class AddUserQuerySolver { +getQuery() }
-    class DeleteUserQuerySolver { +getQuery() }
+    class NewArtifactQuerySolver { +getQuery() String }
+    class StartMonitoringQuerySolver { +getQuery() String }
+    class AddUserQuerySolver { +getQuery() String }
+    class DeleteUserQuerySolver { +getQuery() String }
 
-    VqlService --> ArgsBuilder
+    VqlInterface --> EvidenceType
     VqlService ..|> VqlInterface
+    VqlService --> ArgsBuilder
     ArgsBuilder --> QuerySolver
     QuerySolver <|.. NewArtifactQuerySolver
     QuerySolver <|.. StartMonitoringQuerySolver
