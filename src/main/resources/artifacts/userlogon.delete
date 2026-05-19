@@ -1,4 +1,0 @@
-SELECT remove_server_table(
-    name="Server.UsersLogon",
-    condition="Username = '" + TargetUser + "'"
-) FROM scope()

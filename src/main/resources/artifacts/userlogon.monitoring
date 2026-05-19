@@ -1,1 +1,0 @@
-SELECT upsert_client_monitoring(artifact_name="SOAR.MultiOS.Monitor.Login") FROM scope()
