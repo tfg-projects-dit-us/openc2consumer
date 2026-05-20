@@ -1,19 +1,19 @@
 SELECT upsert_client_artifact(
     artifact='''{
-        "name": "UEBA.SOAR.userlogon",
-		"description": "Monitoriza inicios de sesion de usuarios bajo vigilancia en la tabla 'userlogon' del servidor",
-        "type": "CLIENT_EVENT",
-        "sources": [
-            {
-                "name": "WindowsLogons",
-                "precondition": "SELECT Os FROM info() WHERE Os = 'windows'",
-                "query": "SELECT System.TimeCreated.SystemTime AS Timestamp, EventData.TargetUserName AS Username, 'windows' AS OS FROM watch_evtx(log=\\"Security\\") WHERE System.EventID.Value = 4624 AND EventData.TargetUserName IN server_table(name=\\"Server.userlogon\\")"
-            },
-            {
-                "name": "LinuxLogons",
-                "precondition": "SELECT Os FROM info() WHERE Os = 'linux'",
-                "query": "SELECT timestamp AS Timestamp, parse_string_with_regex(string=Line, regex=''(?P<Type>Accepted|session opened) for user (?P<User>\\\\S+)'').User AS Username, 'linux' AS OS FROM watch_syslog(filename=\\"/var/log/auth.log\\") WHERE (Line =~ \\"Accepted publickey\\" OR Line =~ \\"Accepted password\\" OR Line =~ \\"session opened\\") AND Username IN server_table(name=\\"Server.userlogon\\")"
-            }
-        ]
-    }'''
+    "name": "UEBA.SOAR.userlogon",
+    "description": "Monitoriza inicios de sesion con telemetria adaptativa (grano fino) segun el nivel de vigilancia en el servidor",
+    "type": "CLIENT_EVENT",
+    "sources": [
+        {
+            "name": "WindowsLogons",
+            "precondition": "SELECT Os FROM info() WHERE Os = 'windows'",
+            "query": "SELECT System.TimeCreated.SystemTime AS Timestamp, EventData.TargetUserName AS Username, 'windows' AS OS, if(condition={SELECT VigilanceLevel FROM server_table(name='Server.userlogon') WHERE Username = EventData.TargetUserName LIMIT 1}[0].VigilanceLevel == 'CRITICAL', then=dict(IpAddress=EventData.IpAddress, LogonType=EventData.LogonType, ProcessName=EventData.ProcessName), else=dict(Info='Acceso estandard monitorizado')) AS DetalleVigilancia FROM watch_evtx(log='Security') WHERE System.EventID.Value = 4624 AND EventData.TargetUserName IN server_table(name='Server.userlogon').Username"
+        },
+        {
+            "name": "LinuxLogons",
+            "precondition": "SELECT Os FROM info() WHERE Os = 'linux'",
+            "query": "SELECT timestamp AS Timestamp, parse_string_with_regex(string=Line, regex=''(?P<Type>Accepted|session opened) for user (?P<User>\\\\S+)'').User AS Username, 'linux' AS OS, if(condition={SELECT VigilanceLevel FROM server_table(name='Server.userlogon') WHERE Username = Username LIMIT 1}[0].VigilanceLevel == 'CRITICAL', then=Line, else='Linea de log omitida (Nivel Estandard)') AS DetalleVigilancia FROM watch_syslog(filename='/var/log/auth.log') WHERE (Line =~ 'Accepted publickey' OR Line =~ 'Accepted password' OR Line =~ 'session opened') AND Username IN server_table(name='Server.userlogon').Username"
+        }
+    ]
+}'''
 ) FROM scope()

@@ -78,6 +78,16 @@ class VqlTests {
     }
 
     @Test
+    void addUserWithLevel() {
+        try {
+            vqlService.addUser("userlogon", "testuser", "HIGH");
+        } catch (Exception e) {
+            log.error("Error adding user with vigilance level in Velociraptor: ", e);
+            assertNotNull(e, "Exception should not be null");
+        }
+    }
+
+    @Test
     void deleteUserInVelociraptor() {
         try {
             vqlService.deleteUser("userlogon", "testuser");

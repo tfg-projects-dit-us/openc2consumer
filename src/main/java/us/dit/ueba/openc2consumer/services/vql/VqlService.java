@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import us.dit.ueba.openc2consumer.config.EvidenceTypes;
+import us.dit.ueba.openc2consumer.config.VigilanceLevels;
 import us.dit.ueba.openc2consumer.proto.Api.VQLCollectorArgs;
 import us.dit.ueba.openc2consumer.proto.Api.VQLResponse;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
@@ -42,6 +43,8 @@ public class VqlService implements VqlInterface {
     private String artifactsPath;
     @Autowired
     private EvidenceTypes evidenceTypes;
+    @Autowired
+    private VigilanceLevels vigilanceLevels;
 
     private static Logger log = LoggerFactory.getLogger(VqlService.class);
 
@@ -144,17 +147,33 @@ public class VqlService implements VqlInterface {
     }
 
     /**
+     * Añade un usuario a monitorizar en un artefacto ya registrado en el
+     * servidor, con nivel de vigilancia STANDARD por defecto
+     *
+     * @param evidenceType
+     * @param username
+     */
+    public void addUser(String evidenceType, String username) {
+        addUser(evidenceType, username, "STANDARD");
+    }
+
+    /**
      *
      * Añade un usuario a monitorizar en un artefacto ya registrado en el
      * servidor
      *
      * @param evidenceType
      * @param username
+     * @param vigilanceLevel
      */
-    public void addUser(String evidenceType, String username) {
+    public void addUser(String evidenceType, String username, String vigilanceLevel) {
         if (!isValidEvidenceType(evidenceType)) {
             log.error("Invalid evidence type: " + evidenceType);
             throw new IllegalArgumentException("Invalid evidence type: " + evidenceType);
+        }//Si el nivel de vigilancia no es válido se pone como STANDARD
+        if (!isValidVigilanceLevel(vigilanceLevel)) {
+            log.error("Invalid vigilance level: " + vigilanceLevel + " it will be set to STANDARD");
+            vigilanceLevel = "STANDARD";
         }
         String name = evidenceType.toLowerCase() + "_openc2_soar_add_user";
 
@@ -165,6 +184,7 @@ public class VqlService implements VqlInterface {
                     .setName(name)
                     .setVariable("TableName", tableName)
                     .setVariable("TargetUSer", username)
+                    .setVariable("VigilanceLevel", vigilanceLevel)
                     .buildArgs();
             log.debug("\n Construyendo petición para arrancar monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
             Iterator<VQLResponse> responseStream = blockingStub.query(args);
@@ -223,5 +243,9 @@ public class VqlService implements VqlInterface {
 
     boolean isValidEvidenceType(String evidenceType) {
         return evidenceTypes.getEvidences().contains(evidenceType.toString().toLowerCase());
+    }
+
+    boolean isValidVigilanceLevel(String vigilanceLevel) {
+        return vigilanceLevels.getVigilanceLevels().contains(vigilanceLevel.toString().toUpperCase());
     }
 }

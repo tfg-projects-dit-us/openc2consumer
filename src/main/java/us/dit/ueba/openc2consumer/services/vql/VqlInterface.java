@@ -31,7 +31,9 @@ public interface VqlInterface {
 
     public void startMonitoring(String evidenceType);
 
-    public void addUser(String evidenceType, String username);
+    public void addUser(String evidenceType, String username, String vigilanceLevel);
+
+    public void addUser(String evidenceType, String username); // Sobrecarga si no se introduce nivel de vigilancia, se considerará STANDARD por defecto
 
     public void deleteUser(String evidenceType, String username);
 

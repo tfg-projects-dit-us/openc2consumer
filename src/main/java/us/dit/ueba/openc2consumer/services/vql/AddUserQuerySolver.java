@@ -24,16 +24,27 @@ public class AddUserQuerySolver implements QuerySolver {
     /**
      * Esta consulta VQL se utiliza para agregar un usuario a una tabla en
      * Velociraptor. La consulta utiliza la función add_server_table para
-     * agregar una fila a una tabla específica, donde el nombre de la tabla y el
-     * usuario a agregar se pasan como variables de entorno (TableName y
-     * TargetUser, respectivamente). La consulta se ejecuta dentro del contexto
-     * de scope(), lo que significa que se aplicará a los hosts o entidades que
-     * estén dentro del alcance de la consulta.
+     * agregar una fila a una tabla específica, donde el nombre de la tabla, el
+     * usuario a agregar y su nivel de rastreo/vigilancia se pasan como
+     * variables de entorno envql (TableName, TargetUser, TargetLevel). La
+     * consulta se ejecuta dentro del contexto de scope(), lo que significa que
+     * se aplicará a los hosts o entidades que estén dentro del alcance de la
+     * consulta.
      */
     @Override
     public String getQuery() {
         log.debug("VQL para incluir un usuario en una tabla, ambos como parámetros de la consulta VQL");
-        return "SELECT add_server_table(name=TableName,row=dict(Username=TargetUser)) FROM scope()";
+        String query = """     
+    SELECT add_server_table(
+        name = TableName,
+        row = dict(
+            Username = TargetUser,
+            VigilanceLevel = get(item = scope(), field = 'TargetLevel', default = 'STANDARD')
+        )
+    ) FROM scope()
+    """;
+
+        return query;
     }
 
 }
