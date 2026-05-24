@@ -33,6 +33,14 @@ import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiBlockingStub;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc.VqlApiStub;
 
+/**
+ * @author Isabel Román Esta clase se encarga de implementar los métodos para
+ * interactuar con Velociraptor a través de gRPC. Utiliza los stubs generados
+ * por gRPC para enviar consultas VQL Los tipos de evidencias y los niveles de
+ * vigilancia se puede configurar en el archivo application.properties Así como
+ * la ruta de los archivos .artifact que contienen las consultas VQL para
+ * registrar nuevos artefactos en Velociraptor
+ */
 @Service("vqlService")
 
 public class VqlService implements VqlInterface {
