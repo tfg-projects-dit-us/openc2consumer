@@ -17,6 +17,16 @@
  */
 package us.dit.ueba.openc2consumer.services.vql;
 
+/**
+ * @author Isabel Román Implementación de QuerySolver que genera una consulta
+ * VQL para agregar un usuario a una tabla en Velociraptor. Esta clase se
+ * encarga de construir una consulta VQL que utiliza la función add_server_table
+ * para agregar una fila a una tabla específica en Velociraptor, donde el nombre
+ * de la tabla, el usuario a agregar y su nivel de rastreo/vigilancia se pasan
+ * como variables de entorno envql (TableName, TargetUser, TargetLevel). La
+ * consulta se ejecuta dentro del contexto de scope(), lo que significa que se
+ * aplicará a los hosts o entidades que estén dentro del alcance de la consulta.
+ */
 public class AddUserQuerySolver implements QuerySolver {
 
     private final static org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AddUserQuerySolver.class);

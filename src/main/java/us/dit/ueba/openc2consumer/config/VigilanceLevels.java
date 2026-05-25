@@ -1,3 +1,20 @@
+/*
+ * Copyright 2026 Universidad de Sevilla/Departamento de Ingeniería Telemática
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * This file is part of OpenC2Consumer, a SOAR4FUEBA (SOAR solution based on BPM paradigm) component
+ */
 package us.dit.ueba.openc2consumer.config;
 
 import java.util.ArrayList;
@@ -8,6 +25,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * @author Isabel Román Esta clase se encarga de mapear la propiedad
+ * "ueba.user.vigilancelevels" del application.properties a una lista de
+ * strings. Spring Boot se encargará de inyectar el valor de
+ * "ueba.user.vigilancelevels" en esta clase
+ */
 @Configuration
 @ConfigurationProperties(prefix = "ueba.user")
 public class VigilanceLevels {
@@ -19,7 +42,6 @@ public class VigilanceLevels {
      * clase, y luego podrás acceder a esa lista desde VqlService para construir
      * consultas vql
      */
-
     private Logger log = LoggerFactory.getLogger(VigilanceLevels.class);
 
     // Spring convertirá "userlogon,usersession" en esta lista

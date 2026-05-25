@@ -29,15 +29,17 @@ public class Evidence {
     private Long id;
     private String type;
     private List<String> usernames = new ArrayList<>();
+    private String artefact;
     private String description;
 
     public Evidence() {
     }
 
-    public Evidence(Long id, String type, List<String> usernames, String description) {
+    public Evidence(Long id, String type, List<String> usernames, String artefact, String description) {
         this.id = id;
         this.type = type;
         this.usernames = usernames;
+        this.artefact = artefact;
         this.description = description;
     }
 
@@ -67,6 +69,14 @@ public class Evidence {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getArtefact() {
+        return artefact;
+    }
+
+    public void setArtefact(String artefact) {
+        this.artefact = artefact;
     }
 
     public void setDescription(String description) {

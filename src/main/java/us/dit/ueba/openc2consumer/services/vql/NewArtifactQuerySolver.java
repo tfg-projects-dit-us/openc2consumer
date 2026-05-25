@@ -24,6 +24,14 @@ import java.nio.file.Files;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @author Isabel Román Implementación de QuerySolver que genera una consulta
+ * VQL para agregar un nuevo artefacto en Velociraptor. Esta clase se encarga de
+ * construir una consulta VQL que se lee desde un archivo .artifact específico
+ * para cada tipo de evidencia. El archivo .artifact contiene la consulta VQL
+ * que se debe utilizar
+ *
+ */
 public class NewArtifactQuerySolver implements QuerySolver {
 
     String evidenceType;

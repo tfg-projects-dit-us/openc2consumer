@@ -1,0 +1,28 @@
+SELECT 
+  -- 1. Despliega el artefacto en el Agente que corre en el servidor Web/IdP
+  upsert_client_artifact(artifact='''{
+    "name": "UEBA.SOAR.sso",
+    "description": "Monitoriza inicios de sesion SSO (Keycloak/WSO2) en formato estandar OCSF 3001",
+    "type": "CLIENT_EVENT",
+    "sources": [
+        {
+            "name": "KeycloakSSOLogons",
+            "precondition": "SELECT Os FROM info() WHERE Os = 'linux'",
+            "query": "SELECT int(int=timestamp) AS time, 3001 AS class_uid, 1 AS activity_id, dict(name=parse_string_with_regex(string=Line, regex=''(?i)user=(?P<User>\\\\S+)'').User) AS user, dict(os=dict(type='linux', name='Linux')) AS device, dict(auth_protocol='OIDC', idp_name='Keycloak', client_id=parse_string_with_regex(string=Line, regex=''(?i)client_id=(?P<Client>\\\\S+)'').Client) AS auth_protocol_details, if(condition={SELECT VigilanceLevel FROM server_table(name='Server.sso') WHERE Username = user.name LIMIT 1}[0].VigilanceLevel == 'CRITICAL', then=dict(raw_log=Line, src_ip=parse_string_with_regex(string=Line, regex=''(?i)ip_address=(?P<IP>\\\\S+)'').IP, vigilance_level='CRITICAL'), else=dict(info='Login Web Estandard', vigilance_level='STANDARD')) AS unmapped FROM watch_syslog(filename='/var/log/keycloak/authentication.log') WHERE (Line =~ 'LOGIN_SUCCESS' OR Line =~ 'USER_AUTH_SUCCESS') AND parse_string_with_regex(string=Line, regex=''(?i)user=(?P<User>\\\\S+)'').User IN server_table(name='Server.sso').Username"
+        }
+    ]
+}''') AS Deploy_WebClient_Artifact,
+
+  -- 2. Despliega el artefacto en el Servidor para redirigir este flujo especifico a Kafka
+  upsert_client_artifact(artifact='''{
+    "name": "Server.Utils.ForwardSsoToKafka",
+    "description": "Escucha las colecciones del artefacto UEBA.SOAR.sso y las envia a Kafka",
+    "type": "SERVER_EVENT",
+    "sources": [
+        {
+            "query": "SELECT * FROM foreach(row={ SELECT query_results FROM watch_monitoring(artifact='UEBA.SOAR.sso') }, query={ SELECT http_client(url='http://tu-kafka-rest-proxy:8082/topics/ocsf-sso-events', method='POST', headers=dict(`Content-Type`='application/vnd.kafka.json.v2+json'), body=format(format='{\"records\":[{\"value\": %s}]}', args=serialize(item=_value))) AS Response FROM foreach(row=query_results) })"
+        }
+    ]
+}''') AS Deploy_WebServer_Artifact
+
+FROM scope()

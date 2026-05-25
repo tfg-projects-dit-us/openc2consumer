@@ -58,6 +58,11 @@
 			<artifactId>spring-grpc-client-spring-boot-starter</artifactId>
 		</dependency>
 		<dependency>
+     		<groupId>org.oasis.openc2</groupId>
+      		<artifactId>lycan</artifactId>
+      		<version>1.0.0</version>
+    	</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>

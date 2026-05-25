@@ -1,0 +1,10 @@
+{
+    "name": "Server.Kafka.userlogon",
+    "description": "Escucha las colecciones del artefacto UEBA.SOAR.userlogon y reenvia los eventos OCSF a Kafka de forma automatica.",
+    "type": "SERVER_EVENT",
+    "sources": [
+        {
+            "query": "SELECT * FROM foreach(row={ SELECT client_id, artifact, timestamp, flow_id, query_results FROM watch_monitoring(artifact='UEBA.SOAR.userlogon') }, query={ SELECT http_client(url='http://tu-kafka-rest-proxy:8082/topics/ocsf-authentication-events', method='POST', headers=dict(`Content-Type`='application/vnd.kafka.json.v2+json'), body=format(format='{\"records\":[{\"value\": %s}]}', args=serialize(item=_value))) AS Response FROM foreach(row=query_results) })"
+        }
+    ]
+}

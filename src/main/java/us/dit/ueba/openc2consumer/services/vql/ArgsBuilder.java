@@ -28,8 +28,8 @@ import us.dit.ueba.openc2consumer.proto.Api.VQLEnv;
 import us.dit.ueba.openc2consumer.proto.Api.VQLRequest;
 
 /**
- * El objetivo de esta clase es construir las consultas VQL que se enviarán a
- * Velociraptor.
+ * @author Isabel Román El objetivo de esta clase es construir las consultas VQL
+ * que se enviarán a Velociraptor.
  */
 public class ArgsBuilder {
 

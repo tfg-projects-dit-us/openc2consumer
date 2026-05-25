@@ -29,6 +29,13 @@ Para los tests se usa un servidor **gRPC in-process mock** (`InProcessServerBuil
 
 ---
 
+## Dependencias
+
+La arquitectura está basada en el modelo de datos OCSF, para la gestión de entidades OCSF se usa la librería [ocsf-java-tools] (https://github.com/tfg-projects-dit-us/ocsf-java-tools). Dado que no está disponible como artefacto en maven central, es necesario clonar y publicar el artefacto en el repo maven local ejecutando ./gradlew publishToMavenLocal
+
+La arquitectura utiliza openC2 como estándar para el envío de comandos. Para la gestión de mensajes openC2 se usa la librería [openc2-lycan-java](https://github.com/tfg-projects-dit-us/openc2-lycan-java). Dado que no está disponible como artefacto en maven central, es neceario clonar y publicar el artefacto en el repo maven local ejecutando mvn clean build
+---
+
 ## 🗺️ Flujo de la aplicación
 
 ```mermaid

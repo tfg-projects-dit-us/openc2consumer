@@ -22,10 +22,10 @@ public class DeleteUserQuerySolver implements QuerySolver {
     private final static org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DeleteUserQuerySolver.class);
 
     /**
-     * Esta consulta VQL se utiliza para eliminar un usuario de una tabla
-     * específica en Velociraptor. La consulta utiliza la función
-     * remove_server_table para eliminar un usuario de una tabla, donde el
-     * nombre de la tabla y el usuario a eliminar se pasan como variables de
+     * @author Isabel Román Esta consulta VQL se utiliza para eliminar un
+     * usuario de una tabla específica en Velociraptor. La consulta utiliza la
+     * función remove_server_table para eliminar un usuario de una tabla, donde
+     * el nombre de la tabla y el usuario a eliminar se pasan como variables de
      * entorno (TableName y TargetUser, respectivamente). La consulta se ejecuta
      * dentro del contexto de scope(), lo que significa que se aplicará a los
      * hosts o entidades que estén dentro del alcance de la consulta.

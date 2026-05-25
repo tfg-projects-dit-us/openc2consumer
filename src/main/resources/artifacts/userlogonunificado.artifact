@@ -1,8 +1,8 @@
-SELECT upsert_client_artifact(
-    artifact='''{
-	
+SELECT 
+  -- 1. Despliega el artefacto captura de eventos logon en el Agente (Client Event)
+  upsert_client_artifact(artifact='''{
     "name": "UEBA.SOAR.userlogon",
-    "description": "Monitoriza inicios de sesion con telemetria adaptativa en formato estandar OCSF 3001 (Authentication). Categoría: Identity & Access Management (Categoría ID: 3). Clase: Authentication (Clase ID: 3001)",
+    "description": "Monitoriza inicios de sesion con telemetria adaptativa en formato estandar OCSF. Categoria: Identity & Access Management (ID: 3). Clase: Authentication (ID: 3001)",
     "type": "CLIENT_EVENT",
     "sources": [
         {
@@ -16,6 +16,18 @@ SELECT upsert_client_artifact(
             "query": "SELECT int(int=timestamp) AS time, 3001 AS class_uid, 1 AS activity_id, dict(name=parse_string_with_regex(string=Line, regex=''(?P<Type>Accepted|session opened) for user (?P<User>\\\\S+)'').User) AS user, dict(os=dict(type='linux', name='Linux')) AS device, if(condition={SELECT VigilanceLevel FROM server_table(name='Server.userlogon') WHERE Username = user.name LIMIT 1}[0].VigilanceLevel == 'CRITICAL', then=dict(raw_log=Line, vigilance_level='CRITICAL'), else=dict(info='Linea de log omitida', vigilance_level='STANDARD')) AS unmapped FROM watch_syslog(filename='/var/log/auth.log') WHERE (Line =~ 'Accepted publickey' OR Line =~ 'Accepted password' OR Line =~ 'session opened') AND parse_string_with_regex(string=Line, regex=''(?P<Type>Accepted|session opened) for user (?P<User>\\\\S+)'').User IN server_table(name='Server.userlogon').Username"
         }
     ]
-}   
-}'''
-) FROM scope()
+}''') AS Deploy_Client_Artifact,
+
+  -- 2. Despliega el artefacto en el Servidor (Server Event) para el reenvio a Kafka
+  upsert_client_artifact(artifact='''{
+    "name": "Server.Kafka.userlogon",
+    "description": "Escucha las colecciones del artefacto UEBA.SOAR.userlogon y reenvia los eventos OCSF a Kafka de forma automatica.",
+    "type": "SERVER_EVENT",
+    "sources": [
+        {
+            "query": "SELECT * FROM foreach(row={ SELECT client_id, artifact, timestamp, flow_id, query_results FROM watch_monitoring(artifact='UEBA.SOAR.userlogon') }, query={ SELECT http_client(url='http://tu-kafka-rest-proxy:8082/topics/ocsf-authentication-events', method='POST', headers=dict(`Content-Type`='application/vnd.kafka.json.v2+json'), body=format(format='{\"records\":[{\"value\": %s}]}', args=serialize(item=_value))) AS Response FROM foreach(row=query_results) })"
+        }
+    ]
+}''') AS Deploy_Server_Artifact
+
+FROM scope()
