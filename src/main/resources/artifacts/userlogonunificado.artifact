@@ -1,5 +1,5 @@
 SELECT 
-  -- 1. Despliega el artefacto captura de eventos logon en el Agente (Client Event)
+  -- 1. Registra la definición CLIENT_EVENT de logon; no inicia la monitorización
   upsert_client_artifact(artifact='''{
     "name": "UEBA.SOAR.userlogon",
     "description": "Monitoriza inicios de sesion con telemetria adaptativa en formato estandar OCSF. Categoria: Identity & Access Management (ID: 3). Clase: Authentication (ID: 3001)",
@@ -18,7 +18,7 @@ SELECT
     ]
 }''') AS Deploy_Client_Artifact,
 
-  -- 2. Despliega el artefacto en el Servidor (Server Event) para el reenvio a Kafka
+  -- 2. Registra la definición SERVER_EVENT de reenvío a Kafka; no la inicia
   upsert_client_artifact(artifact='''{
     "name": "Server.Kafka.userlogon",
     "description": "Escucha las colecciones del artefacto UEBA.SOAR.userlogon y reenvia los eventos OCSF a Kafka de forma automatica.",

@@ -1,5 +1,5 @@
 SELECT 
-  -- 1. Despliega el artefacto en el Agente que corre en el servidor Web/IdP
+  -- 1. Registra la definición CLIENT_EVENT para el agente del servidor Web/IdP; no la inicia
   upsert_client_artifact(artifact='''{
     "name": "UEBA.SOAR.sso",
     "description": "Monitoriza inicios de sesion SSO (Keycloak/WSO2) en formato estandar OCSF 3001",
@@ -13,7 +13,7 @@ SELECT
     ]
 }''') AS Deploy_WebClient_Artifact,
 
-  -- 2. Despliega el artefacto en el Servidor para redirigir este flujo especifico a Kafka
+  -- 2. Registra la definición SERVER_EVENT de reenvío a Kafka; no la inicia
   upsert_client_artifact(artifact='''{
     "name": "Server.Utils.ForwardSsoToKafka",
     "description": "Escucha las colecciones del artefacto UEBA.SOAR.sso y las envia a Kafka",

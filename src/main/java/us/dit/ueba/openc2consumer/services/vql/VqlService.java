@@ -72,14 +72,10 @@ public class VqlService implements VqlInterface {
     }
 
     /**
-     * Envía un artefacto al velociraptor para que lo registre y lo deje listo
-     * para ejecutar. Por ejemplo, si quieres monitorizar los logons usuarios,
-     * primero tienes que registrar el artefacto "UserLogons" en el servidor, y
-     * luego ya puedes mandar ejecutar ese artefacto con el usuario concreto que
-     * quieres monitorizar (en otra consulta)
+     * Lee y envía la consulta de artifacts.path/evidenceType.artifact para
+     * registrar el artefacto. No inicia su monitorización ni añade usuarios.
      *
-     * @param artefact
-     * @param name
+     * @param evidenceType tipo declarado en ueba.evidences
      */
     public void sendNewArtefact(String evidenceType) {
         if (!isValidEvidenceType(evidenceType)) {
@@ -97,8 +93,7 @@ public class VqlService implements VqlInterface {
             log.debug("\n Construyendo petición de nuevo artefacto {} a Velociraptor, con argumentos {}", evidenceType, args);
             Iterator<VQLResponse> responseStream = blockingStub.query(args);
 
-            // 4. Consumimos la respuesta (aunque upsert_client_artifact no suele devolver filas,
-            // es obligatorio iterar el stream gRPC en Java para que la petición se complete)
+            // Recorremos el stream hasta su fin y registramos los logs recibidos.
             while (responseStream.hasNext()) {
                 VQLResponse response = responseStream.next();
                 if (response.getLog() != null && !response.getLog().isEmpty()) {
@@ -127,9 +122,9 @@ public class VqlService implements VqlInterface {
         String name = evidenceType.toLowerCase() + "_openc2_soar_start_monitoring";
 
         try {
-            //QuerySolver solver = new StartMonitoringQuerySolver(evidenceType, artifactsPath);
+            // La consulta de inicio se construye sin leer un fichero de artefacto.
             QuerySolver solver = new StartMonitoringQuerySolver();
-            String artifactName = "UEBA.SOAR." + evidenceType.toLowerCase(); // El nombre del artefacto es el mismo que el del tipo de evidencia
+            String artifactName = "UEBA.SOAR." + evidenceType.toLowerCase(); // Convención de nombre: UEBA.SOAR.<evidencia>.
             VQLCollectorArgs args = new ArgsBuilder(solver)
                     .setName(name)
                     .setVariable("ArtifactName", artifactName)
@@ -137,8 +132,7 @@ public class VqlService implements VqlInterface {
             log.debug("\n Construyendo petición para arrancar monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
             Iterator<VQLResponse> responseStream = blockingStub.query(args);
 
-            // 4. Consumimos la respuesta (aunque upsert_client_artifact no suele devolver filas,
-            // es obligatorio iterar el stream gRPC en Java para que la petición se complete)
+            // Recorremos el stream hasta su fin y registramos los logs recibidos.
             while (responseStream.hasNext()) {
                 VQLResponse response = responseStream.next();
                 if (response.getLog() != null && !response.getLog().isEmpty()) {
@@ -168,7 +162,10 @@ public class VqlService implements VqlInterface {
     /**
      *
      * Añade un usuario a monitorizar en un artefacto ya registrado en el
-     * servidor
+     * servidor. Un nivel no configurado se sustituye por STANDARD.
+     * Los errores dentro del envío se registran y no se propagan al controlador.
+     * Pendiente: los nombres enviados TargetUSer y VigilanceLevel no coinciden
+     * con TargetUser y TargetLevel esperados por AddUserQuerySolver.
      *
      * @param evidenceType
      * @param username
@@ -197,8 +194,7 @@ public class VqlService implements VqlInterface {
             log.debug("\n Construyendo petición para arrancar monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
             Iterator<VQLResponse> responseStream = blockingStub.query(args);
 
-            // 4. Consumimos la respuesta (aunque upsert_client_artifact no suele devolver filas,
-            // es obligatorio iterar el stream gRPC en Java para que la petición se complete)
+            // Recorremos el stream hasta su fin y registramos los logs recibidos.
             while (responseStream.hasNext()) {
                 VQLResponse response = responseStream.next();
                 if (response.getLog() != null && !response.getLog().isEmpty()) {
@@ -232,8 +228,7 @@ public class VqlService implements VqlInterface {
             log.debug("\n Construyendo petición para eliminar usuario de monitorización {} a Velociraptor, con argumentos {}", evidenceType, args);
             Iterator<VQLResponse> responseStream = blockingStub.query(args);
 
-            // 4. Consumimos la respuesta (aunque upsert_client_artifact no suele devolver filas,
-            // es obligatorio iterar el stream gRPC en Java para que la petición se complete)
+            // Recorremos el stream hasta su fin y registramos los logs recibidos.
             while (responseStream.hasNext()) {
                 VQLResponse response = responseStream.next();
                 if (response.getLog() != null && !response.getLog().isEmpty()) {

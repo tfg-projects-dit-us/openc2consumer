@@ -55,9 +55,9 @@ public class ArgsBuilder {
      * comportamiento. Son los prámetros de la consulta VQL p.e.
      * TargetUser={{username}}
      *
-     * @param key
-     * @param value
-     * @return
+     * @param key nombre de la variable VQL
+     * @param value valor enviado en el entorno de la consulta
+     * @return este constructor para encadenar llamadas
      */
     public ArgsBuilder setVariable(String key, String value) {
         if (this.variables == null) {
@@ -70,16 +70,18 @@ public class ArgsBuilder {
     /**
      * Construye los argumentos para enviar una consulta a Velociraptor
      *
-     * @param vqlQuery
-     * @param name
-     * @return Los argumentos formateados para la consulta gRPC
+     * Requiere la consulta del QuerySolver y el nombre establecido con setName.
+     * Incluye las variables de entorno cuando se han configurado.
+     *
+     * @return los argumentos formateados para la consulta gRPC
+     * @throws IllegalArgumentException si la consulta o el nombre son nulos
      */
     public VQLCollectorArgs buildArgs() {
         VQLRequest request = null;
         VQLCollectorArgs args = null;
 
         String vqlQuery = solver.getQuery();
-        //Primero se intenta construir la consulta con el nombre y la query, si no se proporciona el nombre, se intenta construir solo con la query, si no se proporciona la query, se lanza una excepción
+        // Tanto la consulta como su nombre son obligatorios.
         if (vqlQuery != null && name != null) {
             request = VQLRequest.newBuilder()
                     .setVQL(vqlQuery)
