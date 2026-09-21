@@ -20,10 +20,14 @@ public class ThreatHuntingService {
 
     /** Reconoce targets del perfil; la acción y los argumentos se validan en handle. */
     public boolean supports(JsonNode command) {
-        return command != null && (command.path("target").has("features")
-                || command.path("target").path("th").has("huntflows")
-                || command.path("target").path("th").has("datasources")
-                || command.path("target").path("th").has("hunt"));
+        boolean isThreatHunting = false;
+        if (command!=null) {
+            isThreatHunting = command.path("target").has("features")
+                    || command.path("target").path("th").has("huntflows")
+                    || command.path("target").path("th").has("datasources")
+                    || command.path("target").path("th").has("hunt");
+        }
+        return isThreatHunting;
     }
 
     /** Enruta por target a la consulta o a la validación de investigate. */

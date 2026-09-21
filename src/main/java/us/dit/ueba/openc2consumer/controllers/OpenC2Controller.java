@@ -20,6 +20,8 @@ package us.dit.ueba.openc2consumer.controllers;
 import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 
 import org.oasis.openc2.lycan.OpenC2Message;
 import org.oasis.openc2.lycan.targets.Target;
@@ -35,10 +37,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
-
+import us.dit.ueba.openc2consumer.profiles.ThreatHuntingService;
+import us.dit.ueba.openc2consumer.profiles.ActuatorProfile;
 import us.dit.ueba.openc2consumer.services.vql.VqlInterface;
-import us.dit.ueba.openc2consumer.services.ThreatHuntingService;
 
 /**
  * Recibe comandos OpenC2 en JSON mediante POST /openc2/command
@@ -108,17 +109,22 @@ public class OpenC2Controller {
     @PostMapping(value = "/command", consumes = "application/openc2+json;version=1.0")
     public ResponseEntity<String> receiveCommand(@RequestBody String rawJson) {
         try {
+            // 1. Deserializar con Lycan los comandos que no atiende ThreatHuntingService.
+            //Los detalles de una OpenC2Message se pueden consultar en lycanHOME/openc2-lycan-java/doc/org/oasis/openc2/lycan/OpenC2Message.html
+            OpenC2Message openC2Command = objectMapper.readValue(rawJson, OpenC2Message.class);
+            ActuatorProfile commandSolver=findSolver(openC2Command);
+
             // El servicio atiende consultas del perfil y valida investigate sin ejecutarlo.
             JsonNode rootNode = objectMapper.readTree(rawJson);
             if (threatHuntingService.supports(rootNode)) {
-                var response = threatHuntingService.handle(rootNode);
+                ObjectNode response = threatHuntingService.handle(rootNode);
                 return ResponseEntity.status(response.path("status").asInt())
                         .header("Content-Type", "application/openc2+json;version=1.0")
                         .body(response.toString());
             }
 
             // 1. Deserializar con Lycan los comandos que no atiende ThreatHuntingService.
-            OpenC2Message openC2Command = objectMapper.readValue(rawJson, OpenC2Message.class);
+          //  OpenC2Message openC2Command = objectMapper.readValue(rawJson, OpenC2Message.class);
 
             // 2. Leer vigilancia y clase OCSF; la clase no se utiliza en la operación VQL.
 
@@ -185,5 +191,10 @@ public class OpenC2Controller {
             System.out.println("Vigilancia: " + vigilance);
             System.out.println("Clase OCSF: " + ocsfClass);
         }
+    }
+    private ActuatorProfile findSolver(OpenC2Message command) {
+        // Implementa la lógica para encontrar el solver adecuado según el comando.
+        // Por ahora, devuelve null; se puede extender para devolver instancias de solvers específicos.
+        return null;
     }
 }
