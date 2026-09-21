@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-
 import org.oasis.openc2.lycan.OpenC2Message;
 import org.oasis.openc2.lycan.targets.Target;
 import org.oasis.openc2.lycan.args.Args;
@@ -47,8 +46,10 @@ import us.dit.ueba.openc2consumer.services.vql.VqlInterface;
  *
  * Estado actual del perfil Threat Hunting (sin llamadas a Velociraptor):
  * - query features: acepta únicamente ["pairs"], sin args ni actuator.
- * - query th.huntflows: acepta {} y devuelve la definición estática de userlogon.
- * - query th.datasources: acepta "" y devuelve la fuente estática endpoint_logs.
+ * - query th.huntflows: acepta {} y devuelve la definición estática de
+ * userlogon.
+ * - query th.datasources: acepta "" y devuelve la fuente estática
+ * endpoint_logs.
  * - investigate th.hunt: valida userlogon y sus argumentos, pero no lo ejecuta.
  * Las consultas devuelven 200; las peticiones inválidas, 400; las opciones no
  * implementadas y las investigaciones válidas pendientes de ejecución, 501.
@@ -56,7 +57,8 @@ import us.dit.ueba.openc2consumer.services.vql.VqlInterface;
  * Los demás targets siguen la ruta anterior: se deserializan con Lycan y se
  * llama a addUser() con target.user_account.username, target.evidence_type
  * (userlogon por defecto) y args.x-ueba-vigilance (STANDARD por defecto).
- * Esta ruta no selecciona operaciones según action ni registra o inicia artefactos.
+ * Esta ruta no selecciona operaciones según action ni registra o inicia
+ * artefactos.
  * x-ocsf-class se lee, pero no se utiliza. La adaptación de estas operaciones
  * y de deleteUser() al perfil Threat Hunting sigue pendiente.
  *
@@ -67,6 +69,7 @@ import us.dit.ueba.openc2consumer.services.vql.VqlInterface;
  *
  * Ejemplo de userlogon que supera la validación y devuelve 501 (sin ejecución).
  * El formato nombre=valor en string_args es una convención de este huntflow:
+ * 
  * <pre>
  * {
  *   "action": "investigate",
@@ -89,7 +92,8 @@ import us.dit.ueba.openc2consumer.services.vql.VqlInterface;
  * </pre>
  *
  * El estado de la respuesta del servicio se utiliza también como estado HTTP.
- * investigate no se anuncia en features.pairs mientras su ejecución esté pendiente.
+ * investigate no se anuncia en features.pairs mientras su ejecución esté
+ * pendiente.
  */
 @RestController
 @RequestMapping("/openc2")
@@ -97,107 +101,67 @@ public class OpenC2Controller {
 
     private static final Logger log = LoggerFactory.getLogger(OpenC2Controller.class);
 
-    @Autowired
-    private VqlInterface vqlService;
-
-    @Autowired
+    private final List<Actuator> registeredActuators;
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private ThreatHuntingService threatHuntingService;
+    // Spring inyecta automáticamente todas las clases que implementen 'Actuator'
+    public OpenC2Controller(List<Actuator> registeredActuators, ObjectMapper objectMapper) {
+        this.registeredActuators = registeredActuators;
+        this.objectMapper = objectMapper;
+    }
 
     @PostMapping(value = "/command", consumes = "application/openc2+json;version=1.0")
     public ResponseEntity<String> receiveCommand(@RequestBody String rawJson) {
         try {
             // 1. Deserializar con Lycan los comandos que no atiende ThreatHuntingService.
-            //Los detalles de una OpenC2Message se pueden consultar en lycanHOME/openc2-lycan-java/doc/org/oasis/openc2/lycan/OpenC2Message.html
+            // Los detalles de una OpenC2Message se pueden consultar en
+            // lycanHOME/openc2-lycan-java/doc/org/oasis/openc2/lycan/OpenC2Message.html
             OpenC2Message openC2Command = objectMapper.readValue(rawJson, OpenC2Message.class);
-            String action=openC2Command.getAction();
-            OpenC2Map<TargetType> targets=openC2Command.getTarget();
-            
-            ActuatorProfile commandSolver=findSolver(openC2Command);
-
-            // El servicio atiende consultas del perfil y valida investigate sin ejecutarlo.
-            JsonNode rootNode = objectMapper.readTree(rawJson);
-            if (threatHuntingService.supports(rootNode)) {
-                ObjectNode response = threatHuntingService.handle(rootNode);
-                return ResponseEntity.status(response.path("status").asInt())
-                        .header("Content-Type", "application/openc2+json;version=1.0")
-                        .body(response.toString());
-            }
-
-            // 1. Deserializar con Lycan los comandos que no atiende ThreatHuntingService.
-          //  OpenC2Message openC2Command = objectMapper.readValue(rawJson, OpenC2Message.class);
-
-            // 2. Leer vigilancia y clase OCSF; la clase no se utiliza en la operación VQL.
-
-            JsonNode argsNode = rootNode.path("args");
-
-            String vigilance = argsNode.path("x-ueba-vigilance").asText("STANDARD");
-            int ocsfClass = argsNode.path("x-ocsf-class").asInt(3001);
-
-            // 3. Leer el tipo de evidencia y el usuario de la ruta anterior.
-            JsonNode targetNode = rootNode.path("target");
-            String evidenceType = targetNode.path("evidence_type").asText(null);
-            String username = targetNode.path("user_account").path("username").asText(null);
-
-            if (username == null || username.isEmpty()) {
-                // Fallback: intentar leer desde el objeto Lycan si la estructura lo soporta
-                try {
-                    JsonNode lycanTarget = objectMapper.valueToTree(openC2Command.getTarget());
-                    username = lycanTarget.path("username").asText(username);
-                } catch (Exception ex) {
-                    // Se conserva el valor anterior de username si Lycan no permite extraerlo.
-                }
-            }
-
-            // 4. Solicitar el alta del usuario, sin seleccionar la operación según action.
-            if (evidenceType == null || evidenceType.isEmpty()) {
-                evidenceType = "userlogon"; // tipo de evidencia por defecto
-            }
-            if (username != null && !username.isEmpty()) {
-                vqlService.addUser(evidenceType, username, vigilance);
+            OpenC2Response response = null;
+            // 1. Filtrar los actuadores que deben responder
+            List<Actuator> matchingActuators = registeredActuators.stream()
+                    .filter(actuator -> actuator.supports(openC2Command))
+                    .collect(Collectors.toList());
+            // Si ningún actuador puede procesarlo
+            if (matchingActuators.isEmpty()) {
+                response = new OpenC2Response(501,
+                        Map.of("error", "Not Implemented: No actuator registered for this target/action"));
             } else {
-                throw new IllegalArgumentException("Username not found in OpenC2 target");
+                response = aggregateResponses(matchingActuators, message);
             }
-
-            // 5. Responder 200 si addUser retorna; sus errores gRPC se registran internamente.
-            String openC2Response = "{\"status\": 200, \"status_text\": \"Command executed successfully\"}";
-            return ResponseEntity.ok()
-                    .header("Content-Type", "application/openc2+json;version=1.0")
-                    .body(openC2Response);
-
+            return response;
         } catch (Exception e) {
-            // Si algo falla, respondemos con la estructura de error de OpenC2
-            String errorResponse = String.format("{\"status\": 400, \"status_text\": \"Bad Request: %s\"}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .header("Content-Type", "application/openc2+json;version=1.0")
-                    .body(errorResponse);
+            finalStatusCode = 500;
+            aggregatedResults.put(actuator.getProfileName(), Map.of("error", e.getMessage()));
         }
+        
     }
 
+    private openC2Response aggregateResponse(List<Actuator> actuators, OpenC2Message command) {
+        int finalStatusCode = 200;
+        Map<String, Object> aggregatedResults = new HashMap<>();
 
-    public void procesarComando(String jsonCrudo) throws Exception {
-        // Método auxiliar sin endpoint: deserializa el Core con Lycan.
-        OpenC2Message command = objectMapper.readValue(jsonCrudo, OpenC2Message.class);
+        for (Actuator actuator : actuators) {
+            try {
+                OpenC2Response response = actuator.solve(command);
 
-        // Lee los argumentos propietarios directamente del JSON.
-        JsonNode rootNode = objectMapper.readTree(jsonCrudo);
-        JsonNode argsNode = rootNode.path("args");
+                // Si alguno falla, degradamos el estado general
+                if (response.getStatus() >= 400) {
+                    finalStatusCode = response.getStatus();
+                }
 
-        if (!argsNode.isMissingNode()) {
-            // Aplica valores por defecto si faltan las propiedades.
-            String vigilance = argsNode.path("x-ueba-vigilance").asText("STANDARD");
-            int ocsfClass = argsNode.path("x-ocsf-class").asInt(3001);
+                // Agrupamos el resultado bajo la clave del actuador
+                if (response.getResults() != null) {
+                    aggregatedResults.put(actuator.getProfileName(), response.getResults());
+                }
 
-            // Solo imprime los valores; no construye ni envía consultas VQL.
-            System.out.println("Vigilancia: " + vigilance);
-            System.out.println("Clase OCSF: " + ocsfClass);
+            } catch (Exception e) {
+                finalStatusCode = 500;
+                aggregatedResults.put(actuator.getProfileName(), Map.of("error", e.getMessage()));
+            }
         }
+
+        return new OpenC2Response(finalStatusCode, aggregatedResults);
     }
-    private ActuatorProfile findSolver(OpenC2Message command) {
-        // Implementa la lógica para encontrar el solver adecuado según el comando.
-        // Por ahora, devuelve null; se puede extender para devolver instancias de solvers específicos.
-        return null;
-    }
+
 }
