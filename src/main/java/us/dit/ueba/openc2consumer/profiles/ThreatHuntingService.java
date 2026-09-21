@@ -11,11 +11,15 @@ import org.springframework.stereotype.Service;
  * El controlador se encarga del HTTP; este servicio no depende de Velociraptor.
  */
 @Service
-public class ThreatHuntingService {
+public class ThreatHuntingService implements ActuatorProfile{
     private final ObjectMapper objectMapper;
 
     public ThreatHuntingService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+    }
+    public String getProfileName(){
+        String profileName="th";
+        return profileName;
     }
 
     /** Reconoce targets del perfil; la acción y los argumentos se validan en handle. */
@@ -29,9 +33,13 @@ public class ThreatHuntingService {
         }
         return isThreatHunting;
     }
+    public OpenC2Response solve(OpenC2Message message){
+        OpenC2Response response=null;
+        return response;
+    }
 
     /** Enruta por target a la consulta o a la validación de investigate. */
-    public ObjectNode handle(JsonNode command) {
+    private ObjectNode handle(JsonNode command) {
         if (!supports(command)) {
             throw new IllegalArgumentException("Unsupported Threat Hunting command");
         }
@@ -46,6 +54,7 @@ public class ThreatHuntingService {
         }
         return investigateHunt(command);
     }
+
 
     /**
      * Primer paso: consultar las parejas action/target disponibles.

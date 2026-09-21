@@ -112,6 +112,9 @@ public class OpenC2Controller {
             // 1. Deserializar con Lycan los comandos que no atiende ThreatHuntingService.
             //Los detalles de una OpenC2Message se pueden consultar en lycanHOME/openc2-lycan-java/doc/org/oasis/openc2/lycan/OpenC2Message.html
             OpenC2Message openC2Command = objectMapper.readValue(rawJson, OpenC2Message.class);
+            String action=openC2Command.getAction();
+            OpenC2Map<TargetType> targets=openC2Command.getTarget();
+            
             ActuatorProfile commandSolver=findSolver(openC2Command);
 
             // El servicio atiende consultas del perfil y valida investigate sin ejecutarlo.
