@@ -27,11 +27,11 @@ import io.grpc.ManagedChannelBuilder;
 import us.dit.ueba.openc2consumer.proto.VqlApiGrpc;
 
 /**
- * @author Isabel Román Esta clase se encarga de configurar la conexión gRPC con
- * Velociraptor. En un entorno de producción, se recomienda configurar la
- * seguridad (TLS) para proteger la comunicación entre OpenC2Consumer y
- * Velociraptor. Sin embargo, para facilitar el desarrollo y las pruebas, se
- * puede usar una conexión sin cifrado
+ * @author Isabel Román
+ * Configura el canal gRPC y los stubs síncrono y asíncrono fuera del perfil test.
+ * Lee velociraptor.host y velociraptor.port, con localhost:8001 por defecto.
+ * El canal activo usa plaintext; las propiedades ssl, username y password
+ * no se aplican. El bloque comentado conserva ejemplos anteriores de conexión.
  */
 @Configuration
 @Profile("!test")

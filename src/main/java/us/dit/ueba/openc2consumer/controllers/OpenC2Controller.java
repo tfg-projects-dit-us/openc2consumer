@@ -35,34 +35,60 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.JsonNode;
+
 
 import us.dit.ueba.openc2consumer.services.vql.VqlInterface;
+import us.dit.ueba.openc2consumer.services.ThreatHuntingService;
 
 /**
- * Controlador REST que actúa como consumidor OpenC2. Recibe comandos OpenC2 en
- * formato JSON y los traduce en operaciones VQL sobre Velociraptor.
+ * Recibe comandos OpenC2 en JSON mediante POST /openc2/command
+ * y devuelve las respuestas preparadas por ThreatHuntingService.
  *
- * Endpoint principal: POST /openc2/command
+ * Estado actual del perfil Threat Hunting (sin llamadas a Velociraptor):
+ * - query features: acepta únicamente ["pairs"], sin args ni actuator.
+ * - query th.huntflows: acepta {} y devuelve la definición estática de userlogon.
+ * - query th.datasources: acepta "" y devuelve la fuente estática endpoint_logs.
+ * - investigate th.hunt: valida userlogon y sus argumentos, pero no lo ejecuta.
+ * Las consultas devuelven 200; las peticiones inválidas, 400; las opciones no
+ * implementadas y las investigaciones válidas pendientes de ejecución, 501.
  *
- * Acciones soportadas: - start + target.evidence_type → sendNewArtefact +
- * startMonitoring - add + target.evidence_type + target.username [+
- * args.vigilance_level] → addUser - delete + target.evidence_type +
- * target.username → deleteUser
+ * Los demás targets siguen la ruta anterior: se deserializan con Lycan y se
+ * llama a addUser() con target.user_account.username, target.evidence_type
+ * (userlogon por defecto) y args.x-ueba-vigilance (STANDARD por defecto).
+ * Esta ruta no selecciona operaciones según action ni registra o inicia artefactos.
+ * x-ocsf-class se lee, pero no se utiliza. La adaptación de estas operaciones
+ * y de deleteUser() al perfil Threat Hunting sigue pendiente.
  *
- * Ejemplo de cuerpo JSON para añadir un usuario:
+ * userlogon exige username no vacío y admite vigilance_level opcional:
+ * STANDARD (por defecto), SUSPICIOUS o CRITICAL. Se rechazan parámetros
+ * desconocidos, duplicados o mal formados. Otros huntflows, timeranges,
+ * datasources, native_oc2 y actuator no están implementados.
+ *
+ * Ejemplo de userlogon que supera la validación y devuelve 501 (sin ejecución).
+ * El formato nombre=valor en string_args es una convención de este huntflow:
  * <pre>
  * {
- *   "action": "add",
+ *   "action": "investigate",
  *   "target": {
- *     "evidence_type": "userlogon",
- *     "username": "jdoe"
+ *     "th": {
+ *       "hunt": "userlogon"
+ *     }
  *   },
  *   "args": {
- *     "vigilance_level": "HIGH"
+ *     "th": {
+ *       "huntargs": {
+ *         "string_args": [
+ *           "username=jdoe",
+ *           "vigilance_level=SUSPICIOUS"
+ *         ]
+ *       }
+ *     }
  *   }
  * }
  * </pre>
+ *
+ * El estado de la respuesta del servicio se utiliza también como estado HTTP.
+ * investigate no se anuncia en features.pairs mientras su ejecución esté pendiente.
  */
 @RestController
 @RequestMapping("/openc2")
@@ -76,27 +102,57 @@ public class OpenC2Controller {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private ThreatHuntingService threatHuntingService;
+
     @PostMapping(value = "/command", consumes = "application/openc2+json;version=1.0")
     public ResponseEntity<String> receiveCommand(@RequestBody String rawJson) {
         try {
-            // 1. Validar e interpretar el Core de OpenC2 usando Lycan
+            // El servicio atiende consultas del perfil y valida investigate sin ejecutarlo.
+            JsonNode rootNode = objectMapper.readTree(rawJson);
+            if (threatHuntingService.supports(rootNode)) {
+                var response = threatHuntingService.handle(rootNode);
+                return ResponseEntity.status(response.path("status").asInt())
+                        .header("Content-Type", "application/openc2+json;version=1.0")
+                        .body(response.toString());
+            }
+
+            // 1. Deserializar con Lycan los comandos que no atiende ThreatHuntingService.
             OpenC2Message openC2Command = objectMapper.readValue(rawJson, OpenC2Message.class);
 
-            // 2. Extraer los argumentos propietarios de forma segura
-            JsonNode rootNode = objectMapper.readTree(rawJson);
+            // 2. Leer vigilancia y clase OCSF; la clase no se utiliza en la operación VQL.
+
             JsonNode argsNode = rootNode.path("args");
 
             String vigilance = argsNode.path("x-ueba-vigilance").asText("STANDARD");
             int ocsfClass = argsNode.path("x-ocsf-class").asInt(3001);
 
-            // 3. Extraer el Target (ej. el nombre de usuario "pepito")
-            // Nota: Adapta este método según cómo exponga Lycan el Target de la cuenta
-            String username = openC2Command.getTarget().getUserAccount().getUsername();
+            // 3. Leer el tipo de evidencia y el usuario de la ruta anterior.
+            JsonNode targetNode = rootNode.path("target");
+            String evidenceType = targetNode.path("evidence_type").asText(null);
+            String username = targetNode.path("user_account").path("username").asText(null);
 
-            // 4. Ejecutar la acción en Velociraptor a través de gRPC
-            velociraptorService.updateVigilanceTable(username, vigilance);
+            if (username == null || username.isEmpty()) {
+                // Fallback: intentar leer desde el objeto Lycan si la estructura lo soporta
+                try {
+                    JsonNode lycanTarget = objectMapper.valueToTree(openC2Command.getTarget());
+                    username = lycanTarget.path("username").asText(username);
+                } catch (Exception ex) {
+                    // Se conserva el valor anterior de username si Lycan no permite extraerlo.
+                }
+            }
 
-            // 5. Responder al SOAR siguiendo el estándar OpenC2 Response
+            // 4. Solicitar el alta del usuario, sin seleccionar la operación según action.
+            if (evidenceType == null || evidenceType.isEmpty()) {
+                evidenceType = "userlogon"; // tipo de evidencia por defecto
+            }
+            if (username != null && !username.isEmpty()) {
+                vqlService.addUser(evidenceType, username, vigilance);
+            } else {
+                throw new IllegalArgumentException("Username not found in OpenC2 target");
+            }
+
+            // 5. Responder 200 si addUser retorna; sus errores gRPC se registran internamente.
             String openC2Response = "{\"status\": 200, \"status_text\": \"Command executed successfully\"}";
             return ResponseEntity.ok()
                     .header("Content-Type", "application/openc2+json;version=1.0")
@@ -111,20 +167,21 @@ public class OpenC2Controller {
         }
     }
 
-    public void procesarComando(String jsonCrudo) throws Exception {
-        // 1. Dejas que Lycan haga su magia con la estructura core (Action, Target...)
-        OpenC2Message command = mapper.readValue(jsonCrudo, OpenC2Message.class);
 
-        // 2. Para tus argumentos propietarios, navegas el JSON de forma genérica
-        JsonNode rootNode = mapper.readTree(jsonCrudo);
+    public void procesarComando(String jsonCrudo) throws Exception {
+        // Método auxiliar sin endpoint: deserializa el Core con Lycan.
+        OpenC2Message command = objectMapper.readValue(jsonCrudo, OpenC2Message.class);
+
+        // Lee los argumentos propietarios directamente del JSON.
+        JsonNode rootNode = objectMapper.readTree(jsonCrudo);
         JsonNode argsNode = rootNode.path("args");
 
         if (!argsNode.isMissingNode()) {
-            // Extraes tus propiedades personalizadas de forma directa y segura
+            // Aplica valores por defecto si faltan las propiedades.
             String vigilance = argsNode.path("x-ueba-vigilance").asText("STANDARD");
             int ocsfClass = argsNode.path("x-ocsf-class").asInt(3001);
 
-            // Ya tienes tus datos listos para armar el VQL de Velociraptor
+            // Solo imprime los valores; no construye ni envía consultas VQL.
             System.out.println("Vigilancia: " + vigilance);
             System.out.println("Clase OCSF: " + ocsfClass);
         }

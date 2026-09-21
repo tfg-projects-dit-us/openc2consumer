@@ -24,8 +24,7 @@ package us.dit.ueba.openc2consumer.services.vql;
  * para agregar una fila a una tabla específica en Velociraptor, donde el nombre
  * de la tabla, el usuario a agregar y su nivel de rastreo/vigilancia se pasan
  * como variables de entorno envql (TableName, TargetUser, TargetLevel). La
- * consulta se ejecuta dentro del contexto de scope(), lo que significa que se
- * aplicará a los hosts o entidades que estén dentro del alcance de la consulta.
+ * consulta usa FROM scope() como contexto de evaluación, sin enumerar equipos.
  */
 public class AddUserQuerySolver implements QuerySolver {
 
@@ -37,9 +36,7 @@ public class AddUserQuerySolver implements QuerySolver {
      * agregar una fila a una tabla específica, donde el nombre de la tabla, el
      * usuario a agregar y su nivel de rastreo/vigilancia se pasan como
      * variables de entorno envql (TableName, TargetUser, TargetLevel). La
-     * consulta se ejecuta dentro del contexto de scope(), lo que significa que
-     * se aplicará a los hosts o entidades que estén dentro del alcance de la
-     * consulta.
+     * consulta usa FROM scope() como contexto de evaluación, sin enumerar equipos.
      */
     @Override
     public String getQuery() {

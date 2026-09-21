@@ -24,11 +24,10 @@ public class StartMonitoringQuerySolver implements QuerySolver {
     /**
      * @author Isabel Román Esta consulta VQL se utiliza para iniciar la
      * monitorización de un artefacto específico en Velociraptor. La consulta
-     * utiliza la función start_monitoring para comenzar a monitorear un
+     * utiliza la función upsert_client_monitoring para configurar un
      * artefacto, donde el nombre del artefacto se pasa como una variable de
-     * entorno (ArtifactName). La consulta se ejecuta dentro del contexto de
-     * scope(), lo que significa que se aplicará a los hosts o entidades que
-     * estén dentro del alcance de la consulta.
+     * entorno (ArtifactName). FROM scope() aporta el contexto de evaluación;
+     * esta consulta no enumera ni selecciona equipos.
      */
     @Override
     public String getQuery() {

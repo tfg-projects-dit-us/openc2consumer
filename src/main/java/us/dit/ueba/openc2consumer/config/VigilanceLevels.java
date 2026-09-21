@@ -35,16 +35,10 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "ueba.user")
 public class VigilanceLevels {
 
-    /**
-     * Esta clase se encarga de mapear la propiedad "ueba.user.vigilancelevels"
-     * del application.properties a una lista de strings. Spring Boot se
-     * encargará de inyectar el valor de "ueba.user.vigilancelevels" en esta
-     * clase, y luego podrás acceder a esa lista desde VqlService para construir
-     * consultas vql
-     */
+    // Registra los niveles tras normalizarlos a mayúsculas.
     private Logger log = LoggerFactory.getLogger(VigilanceLevels.class);
 
-    // Spring convertirá "userlogon,usersession" en esta lista
+    // Spring enlaza los niveles configurados: STANDARD, SUSPICIOUS y CRITICAL.
     private List<String> vigilanceLevels;
 
     // 1. Constructor vacío (Obligatorio para que Spring pueda instanciar la clase)
@@ -56,7 +50,7 @@ public class VigilanceLevels {
         return this.vigilanceLevels;
     }
 
-    // 3. Setter con transformación a minúsculas(Obligatorio para que Spring Boot inyecte los datos del application.properties)
+    // 3. Setter con transformación a mayúsculas(Obligatorio para que Spring Boot inyecte los datos del application.properties)
     public void setVigilanceLevels(List<String> vigilanceLevels) {
         if (vigilanceLevels == null) {
             this.vigilanceLevels = null;
