@@ -20,17 +20,15 @@ import org.oasis.openc2.lycan.targets.Target;
  * El controlador se encarga del HTTP; este servicio no depende de Velociraptor.
  */
 @Service
-public class ThreatHuntingProfile implements Actuator {
+public class ThreatHuntingProfile extends ActuatorCommons {
     private final ObjectMapper objectMapper;
 
     public ThreatHuntingProfile(ObjectMapper objectMapper) {
+        super("th");
         this.objectMapper = objectMapper;
     }
 
-    public String getProfileName() {
-        String profileName = "th";
-        return profileName;
-    }
+
 
     /**
      * Reconoce targets del perfil; la acción y los argumentos se validan en handle.
