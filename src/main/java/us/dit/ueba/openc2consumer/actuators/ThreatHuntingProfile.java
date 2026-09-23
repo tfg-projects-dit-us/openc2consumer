@@ -1,17 +1,16 @@
 package us.dit.ueba.openc2consumer.actuators;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import org.springframework.stereotype.Service;
 
 import org.oasis.openc2.lycan.OpenC2Message;
 import org.oasis.openc2.lycan.OpenC2Response;
 import org.oasis.openc2.lycan.targets.Features;
 import org.oasis.openc2.lycan.targets.Target;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Responde las consultas estáticas del perfil threatHunting y valida
@@ -25,10 +24,14 @@ public class ThreatHuntingProfile extends ActuatorCommons {
 
     public ThreatHuntingProfile(ObjectMapper objectMapper) {
         super("th");
+        this.supportedPairs = new HashMap<>();
+        // Ahora mismo se pone en el código, todos los pares acción/objetivo que son
+        // obligatorios para el perfil th
+        // Pero lo ideal es que se lea por configuraicón
+        supportedPairs.put("query", Arrays.asList("features", "th.huntflows"));
+        supportedPairs.put("investigate", Arrays.asList("th.hunt"));
         this.objectMapper = objectMapper;
     }
-
-
 
     /**
      * Reconoce targets del perfil; la acción y los argumentos se validan en handle.
@@ -39,7 +42,7 @@ public class ThreatHuntingProfile extends ActuatorCommons {
         Target target = command.getTarget();
         Features features = target.getFeatures();
         List<String> featuresList = features.getFeatures();
-
+        // Esto ya se puede hacer usando supportedPairs, por ahora lo dejo
         isThreatHunting = action.equals("query") && featuresList.contains("ht:huntflows")
                 || action.equals("query") && featuresList.contains("ht:hunt")
                 || action.equals("query") && featuresList.contains("ht:datasources")
