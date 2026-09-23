@@ -8,8 +8,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import us.dit.ueba.openc2consumer.profiles.ThreatHuntingService;
 import us.dit.ueba.openc2consumer.services.vql.VqlInterface;
-import us.dit.ueba.openc2consumer.services.ThreatHuntingService;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

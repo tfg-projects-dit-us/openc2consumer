@@ -17,11 +17,6 @@
  */
 package us.dit.ueba.openc2consumer.controllers;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.oasis.openc2.lycan.OpenC2Message;
 import org.oasis.openc2.lycan.OpenC2Response;
 import org.slf4j.Logger;
@@ -38,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import us.dit.ueba.openc2consumer.actuators.Actuator;
+import us.dit.ueba.openc2consumer.services.Openc2Consumer;
 
 /**
  * Recibe comandos OpenC2 en JSON mediante POST /openc2/command
@@ -101,12 +96,12 @@ public class OpenC2Controller {
 
     private static final Logger log = LoggerFactory.getLogger(OpenC2Controller.class);
 
-    private final List<Actuator> registeredActuators;
+    private final Openc2Consumer openc2Consumer;
     private ObjectMapper objectMapper;
 
     // Spring inyecta automáticamente todas las clases que implementen 'Actuator'
-    public OpenC2Controller(List<Actuator> registeredActuators, ObjectMapper objectMapper) {
-        this.registeredActuators = registeredActuators;
+    public OpenC2Controller(Openc2Consumer consumer, ObjectMapper objectMapper) {
+        this.openc2Consumer = consumer;
         this.objectMapper = objectMapper;
     }
 
@@ -119,18 +114,7 @@ public class OpenC2Controller {
             // lycanHOME/openc2-lycan-java/doc/org/oasis/openc2/lycan/OpenC2Message.html
             OpenC2Message command = objectMapper.readValue(rawJson, OpenC2Message.class);
             OpenC2Response openC2Response = new OpenC2Response();
-
-            // 1. Filtrar los actuadores que deben responder
-            List<Actuator> matchingActuators = registeredActuators.stream()
-                    .filter(actuator -> actuator.supports(command))
-                    .collect(Collectors.toList());
-            // Si ningún actuador puede procesarlo
-            if (matchingActuators.isEmpty()) {
-                openC2Response.setStatus(501);
-                openC2Response.setStatusText("Not Implemented: No actuator registered for this target/action");
-            } else {
-                openC2Response = aggregateResponses(matchingActuators, command);
-            }
+            openC2Response = openc2Consumer.solve(command);           
             restResponse = toResponseEntity(openC2Response);
         } catch (Exception e) {
             restResponse = ResponseEntity
@@ -142,50 +126,7 @@ public class OpenC2Controller {
         return restResponse;
     }
 
-    /**
-     * Construcción de la respuesta OpenC2 a partir de la respuesta de cada uno de
-     * los actuadores.
-     * Esto está sin revisar, es sólo un esqueleto para que sirva de base
-     * 
-     * @param actuators
-     * @param command
-     * @return
-     */
-    private OpenC2Response aggregateResponses(List<Actuator> actuators, OpenC2Message command) {
-        // Estado si todo va bien
-        int finalStatusCode = 200;
-        OpenC2Response aggregatedResponse = new OpenC2Response();
-        aggregatedResponse.setStatus(200);
-
-        Map<String, Object> aggregatedResults = new HashMap<>();
-        // La combinación de respuestas de los actuadores no está bien trabajada, hay
-        // que pensarla bien
-        for (Actuator actuator : actuators) {
-            try {
-                OpenC2Response response = actuator.solve(command);
-
-                // Si alguno falla, el estado general deja de ser 200
-                if (response.getStatus() >= 400) {
-                    aggregatedResponse.setStatus(207); // Exito parcial alguno tiene problemas
-                    aggregatedResponse.setStatusText(actuator.getProfileName() + ":" + response.getStatusText() + ";"
-                            + aggregatedResponse.getStatusText());
-                }
-
-                // Agrupamos el resultado bajo la clave del actuador
-                if (response.getResults() != null) {
-                    aggregatedResults.put(actuator.getProfileName(), response.getResults());
-                }
-
-            } catch (Exception e) {
-                aggregatedResponse.setStatus(500);
-                aggregatedResponse.setStatusText("General error: " + e.getMessage());
-                aggregatedResults.put(actuator.getProfileName(), Map.of("error", e.getMessage()));
-            }
-        }
-        aggregatedResponse.setResults(aggregatedResults);
-        return aggregatedResponse;
-    }
-
+  
     private ResponseEntity<String> toResponseEntity(OpenC2Response openC2Response) {
         ObjectMapper mapper = new ObjectMapper();
 

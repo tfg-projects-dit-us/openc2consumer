@@ -1,5 +1,8 @@
 package us.dit.ueba.openc2consumer.actuators;
 
+import java.util.List;
+import java.util.Map;
+
 import org.oasis.openc2.lycan.OpenC2Message;
 import org.oasis.openc2.lycan.OpenC2Response;
 
@@ -18,5 +21,7 @@ public interface Actuator {
    * Ejecuta la lógica del comando y devuelve la respuesta individual
    */
   OpenC2Response solve(OpenC2Message message);
+  //debe devolver un mapa en el que la clave es la acción y el objeto la lista de objetivos (targets) para dicha acción
+  Map<String, List<String>> getSupportedPairs();
 
 }
