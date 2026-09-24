@@ -14,14 +14,20 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import us.dit.ueba.openc2consumer.actuators.Actuator;
-
+/**
+ * Servicio con las capacidades ofrecidas por un consumidro openc2 a cualquier controlador que permita
+ * la recepción de comandos y el envío de respuestas.
+ * Debe abstraerse de los detalles de red y centrarse en las funciones de consumidor
+ * El consumidor incluye una lista de actuadores en los que delega la ejecución de comandos de perfiles concretos
+ * El consumidor debe ejecutar los comandos obligatorios: query/features (por ejemplo), aunque para ello puede que tenga que interaccionar con los actuadores
+ */
 @Service
 public class Openc2Consumer {
     private static final Logger log = LoggerFactory.getLogger(Openc2Consumer.class);
+    private final String openC2Version = "1.0"; // La versión de openC2 que soporta este consumidor
 
     private final List<Actuator> registeredActuators;
-//The 'query features' Command is REQUIRED for all Producers and Consumers implementing
-//OpenC2. So, it´s a good candidate to be implemented here
+
  public Openc2Consumer(List<Actuator> registeredActuators) {
         this.registeredActuators = registeredActuators;
     }
@@ -29,7 +35,7 @@ public class Openc2Consumer {
     // Todos los consumidores openC2 tienen que implemenar este par action:target
 
     //Tengo que preguntar a cada actuador y componer la respuesta de forma covneniente, según sea el tipo de objetivo
-    
+    //    
     public OpenC2Response solve(OpenC2Message command) {
          OpenC2Response openC2Response = new OpenC2Response();
          if (command.getAction().equals("query") && command.getTarget().getFeatures() != null) {
