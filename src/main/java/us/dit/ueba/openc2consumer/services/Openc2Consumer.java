@@ -1,5 +1,6 @@
 package us.dit.ueba.openc2consumer.services;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -14,21 +15,25 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import us.dit.ueba.openc2consumer.actuators.Actuator;
+
 /**
- * Servicio con las capacidades ofrecidas por un consumidro openc2 a cualquier controlador que permita
- * la recepción de comandos y el envío de respuestas.
- * Debe abstraerse de los detalles de red y centrarse en las funciones de consumidor
- * El consumidor incluye una lista de actuadores en los que delega la ejecución de comandos de perfiles concretos
- * El consumidor debe ejecutar los comandos obligatorios: query/features (por ejemplo), aunque para ello puede que tenga que interaccionar con los actuadores
+ * Servicio con las capacidades ofrecidas por un consumidro openc2 a cualquier
+ * controlador que permita la recepción de comandos y el envío de respuestas.
+ * Debe abstraerse de los detalles de red y centrarse en las funciones de
+ * consumidor El consumidor incluye una lista de actuadores en los que delega la
+ * ejecución de comandos de perfiles concretos El consumidor debe ejecutar los
+ * comandos obligatorios: query/features (por ejemplo), aunque para ello puede
+ * que tenga que interaccionar con los actuadores
  */
 @Service
 public class Openc2Consumer {
+
     private static final Logger log = LoggerFactory.getLogger(Openc2Consumer.class);
     private final String openC2Version = "1.0"; // La versión de openC2 que soporta este consumidor
 
     private final List<Actuator> registeredActuators;
 
- public Openc2Consumer(List<Actuator> registeredActuators) {
+    public Openc2Consumer(List<Actuator> registeredActuators) {
         this.registeredActuators = registeredActuators;
     }
     //la respuesta al par query:features es obligatorio en todos los perfiles
@@ -37,9 +42,16 @@ public class Openc2Consumer {
     //Tengo que preguntar a cada actuador y componer la respuesta de forma covneniente, según sea el tipo de objetivo
     //    
     public OpenC2Response solve(OpenC2Message command) {
-         OpenC2Response openC2Response = new OpenC2Response();
-         if (command.getAction().equals("query") && command.getTarget().getFeatures() != null) {
-            openC2Response = queryFeatures(command);
+        OpenC2Response openC2Response = new OpenC2Response();
+        /**
+         * The 'query features' Command is REQUIRED for all Producers. The
+         * 'query features' Command MAY include one or more Features as defined
+         * in Section 3.4.2.4. The 'query features' Command MAY include the
+         * "response_requested": "complete" Argument. The 'query features'
+         * Command MUST NOT include any other Argument.
+         */
+        if (command.getAction().equals("query") && command.getTarget().getFeatures() != null) {
+            openC2Response = manageQueryFeaturesCommand(command);
         } else {
 
             // 1. Filtrar los actuadores que deben responder
@@ -54,33 +66,61 @@ public class Openc2Consumer {
                 openC2Response = aggregateResponses(matchingActuators, command);
             }
         }
-            return openC2Response;
+        return openC2Response;
     }
+
     /**
-     * Este método está desarrollado conforme al apartado 4.1 Query Command, del estándar openC2 v1.0
-     * The 'query features' Command is REQUIRED for all Producers and Consumers implementing OpenC2.
+     * Este método está desarrollado conforme al apartado 4.1 Query Command, del
+     * estándar openC2 v1.0 The 'query features' Command is REQUIRED for all
+     * Producers and Consumers implementing OpenC2.
      */
-    public OpenC2Response queryFeatures(OpenC2Message command) {
+    /**
+     * Texto íntegro del estándar v.1.0 The 'query features' Command is REQUIRED
+     * for all Consumers. Consumers that receive and parse the 'query features':
+     * With any Argument other than "response_requested": "complete" MUST NOT
+     * respond with OK/200. SHOULD respond with Bad Request/400. MAY respond
+     * with the 500 status code. With no Target Specifiers MUST respond with
+     * response code 200. With the "versions" Target Specifier MUST respond with
+     * status 200 and populate the versions field with a list of the OpenC2
+     * Language Versions supported by the consumer. With the "profiles" Target
+     * Specifier MUST respond with status 200 and populate the profiles field
+     * with a list of profiles supported by the consumer. With the "pairs"
+     * Target Specifier MUST respond with status 200 and populate the pairs
+     * field with a list of action target pairs that define valid commands
+     * supported by the consumer. With the "rate_limit" Target Specifier
+     * populated: SHOULD respond with status 200 and populate the rate_limit
+     * field with the maximum number of Commands per minute that the Consumer
+     * may support. MAY respond with status 200 and with the rate_limit field
+     * unpopulated.
+     *
+     */
+    public OpenC2Response manageQueryFeaturesCommand(OpenC2Message command) {
         OpenC2Response response = new OpenC2Response();
-        Features features=command.getTarget().getFeatures();
-        Args args=command.getArgs();
-        boolean responseRequested=args.getResponseRequested().toLowerCase().equals("complete");
+        Features features = command.getTarget().getFeatures();
+        Args args = command.getArgs();
+        /**
+         * With any Argument other than "response_requested": "complete"
+         * MUST NOT respond with OK/200. 
+         * SHOULD respond with Bad Request/400. MAY
+         * respond with the 500 status code.
+         */
+        boolean responseRequested = args.getResponseRequested().toLowerCase().equals("complete");
         //El estándar dice que el comando query con el target Features sólo acepta como argumento "response_requested" con valor "complete"
-        if (args!=null && !responseRequested) {
+        if (args != null && !responseRequested) {
             //If the command has a response_requested argument and it is not "complete", we return 400          
             response.setStatus(400);
-            response.setStatusText("Bad Request: with the pair query:features argument must be omitted or only 'response_requested' with value 'complete' is allowed");           
+            response.setStatusText("Bad Request: with the pair query:features argument must be omitted or only 'response_requested' with value 'complete' is allowed");
         }
         // Implement the logic to handle the query features command
         //Depende de los specificadores que se hayan puesto en features... versions, profiles, pairs o rate_limits
         List<String> requiredFeatures = features.getFeatures();
-        List<FeatureType> requiredFeatureTypes = new java.util.ArrayList<>();      
-       
+        List<FeatureType> requiredFeatureTypes = new java.util.ArrayList<>();
+
         for (String feature : requiredFeatures) {
             requiredFeatureTypes.add(FeatureType.valueOf(feature));
         }
-         for (FeatureType featureType : requiredFeatureTypes) {
-            switch(featureType) {
+        for (FeatureType featureType : requiredFeatureTypes) {
+            switch (featureType) {
                 case VERSIONS:
                     // Add supported versions to the response
                     //Es necesario averiguar si cada actuador podría tener una versión y esto debería ser una lista de versiones
@@ -97,7 +137,7 @@ public class Openc2Consumer {
                     break;
                 case PAIRS:
                     // Add supported action/target pairs to the response
-                  
+
                     break;
                 case RATE_LIMIT:
                     //Esto no se lo que debe devolver
@@ -142,16 +182,17 @@ public class Openc2Consumer {
         }
         //Tengo una lista con los tipos de feature solicitados, podrían ser
         // versions, profiles, pairs y rate-limits
-        
+
         response.setStatus(200);
         response.setStatusText("Query features executed successfully");
         return response;
     }
-      /**
-     * Construcción de la respuesta OpenC2 a partir de la respuesta de cada uno de
-     * los actuadores.
-     * Esto está sin revisar, es sólo un esqueleto para que sirva de base
-     * 
+
+    /**
+     * Construcción de la respuesta OpenC2 a partir de la respuesta de cada uno
+     * de los actuadores. Esto está sin revisar, es sólo un esqueleto para que
+     * sirva de base
+     *
      * @param actuators
      * @param command
      * @return
