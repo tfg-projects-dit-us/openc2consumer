@@ -1,5 +1,6 @@
 package us.dit.ueba.openc2consumer.services;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,26 +17,30 @@ import org.springframework.stereotype.Service;
 import us.dit.ueba.openc2consumer.actuators.Actuator;
 
 @Service
-public class Openc2Consumer {
-    private static final Logger log = LoggerFactory.getLogger(Openc2Consumer.class);
+public class OpenC2Consumer {
+    private static final Logger log = LoggerFactory.getLogger(OpenC2Consumer.class);
 
     private final List<Actuator> registeredActuators;
-//The 'query features' Command is REQUIRED for all Producers and Consumers implementing
-//OpenC2. So, it´s a good candidate to be implemented here
- public Openc2Consumer(List<Actuator> registeredActuators) {
+
+    // The 'query features' Command is REQUIRED for all Producers and Consumers
+    // implementing
+    // OpenC2. So, it´s a good candidate to be implemented here
+    public OpenC2Consumer(List<Actuator> registeredActuators) {
         this.registeredActuators = registeredActuators;
     }
-    //la respuesta al par query:features es obligatorio en todos los perfiles
+    // la respuesta al par query:features es obligatorio en todos los perfiles
     // Todos los consumidores openC2 tienen que implemenar este par action:target
 
-    //Tengo que preguntar a cada actuador y componer la respuesta de forma covneniente, según sea el tipo de objetivo
-    
+    // Tengo que preguntar a cada actuador y componer la respuesta de forma
+    // covneniente, según sea el tipo de objetivo
+
     public OpenC2Response solve(OpenC2Message command) {
-         OpenC2Response openC2Response = new OpenC2Response();
-         if (command.getAction().equals("query") && command.getTarget().getFeatures() != null) {
+        OpenC2Response openC2Response = new OpenC2Response();
+        // comando query:features obligatorio, lo implementa el openc2consumer
+        // directamente
+        if (command.getAction().equals("query") && command.getTarget().getFeatures() != null) {
             openC2Response = queryFeatures(command);
         } else {
-
             // 1. Filtrar los actuadores que deben responder
             List<Actuator> matchingActuators = registeredActuators.stream()
                     .filter(actuator -> actuator.supports(command))
@@ -48,101 +53,80 @@ public class Openc2Consumer {
                 openC2Response = aggregateResponses(matchingActuators, command);
             }
         }
-            return openC2Response;
+        return openC2Response;
     }
+
     /**
-     * Este método está desarrollado conforme al apartado 4.1 Query Command, del estándar openC2 v1.0
-     * The 'query features' Command is REQUIRED for all Producers and Consumers implementing OpenC2.
+     * Este método está desarrollado conforme al apartado 4.1 Query Command, del
+     * estándar openC2 v1.0
+     * The 'query features' Command is REQUIRED for all Producers and Consumers
+     * implementing OpenC2.
      */
     public OpenC2Response queryFeatures(OpenC2Message command) {
         OpenC2Response response = new OpenC2Response();
-        Features features=command.getTarget().getFeatures();
-        Args args=command.getArgs();
-        boolean responseRequested=args.getResponseRequested().toLowerCase().equals("complete");
-        //El estándar dice que el comando query con el target Features sólo acepta como argumento "response_requested" con valor "complete"
-        if (args!=null && !responseRequested) {
-            //If the command has a response_requested argument and it is not "complete", we return 400          
+        Features features = command.getTarget().getFeatures();
+        Args args = command.getArgs();
+        boolean responseRequested = args != null && "complete".equalsIgnoreCase(args.getResponseRequested());
+        // El estándar dice que el comando query con el target Features sólo acepta como
+        // argumento "response_requested" con valor "complete"
+        if (args != null && !responseRequested) {
+            // If the command has a response_requested argument and it is not "complete", we
+            // return 400
             response.setStatus(400);
-            response.setStatusText("Bad Request: with the pair query:features argument must be omitted or only 'response_requested' with value 'complete' is allowed");           
-        }
-        // Implement the logic to handle the query features command
-        //Depende de los specificadores que se hayan puesto en features... versions, profiles, pairs o rate_limits
-        List<String> requiredFeatures = features.getFeatures();
-        List<FeatureType> requiredFeatureTypes = new java.util.ArrayList<>();      
-       
-        for (String feature : requiredFeatures) {
-            requiredFeatureTypes.add(FeatureType.valueOf(feature));
-        }
-         for (FeatureType featureType : requiredFeatureTypes) {
-            switch(featureType) {
-                case VERSIONS:
-                    // Add supported versions to the response
-                    //Es necesario averiguar si cada actuador podría tener una versión y esto debería ser una lista de versiones
-                    //Entonces el actuador tiene que tener un cmapo versión
-                    response.addResults(featureType.toString(), "1.0");
-                    break;
-                case PROFILES:
-                    // Add supported profiles to the response
-                    List<String> profileNames = registeredActuators.stream()
-                            .map(Actuator::getProfileName)
-                            .filter(name -> name != null && !name.isEmpty())
-                            .collect(Collectors.toList());
-                    response.addResults(featureType.toString(), profileNames);
-                    break;
-                case PAIRS:
-                    // Add supported action/target pairs to the response
-                  
-                    break;
-                case RATE_LIMIT:
-                    //Esto no se lo que debe devolver
-                    response.addResults(featureType.toString(), Map.of("default", 100));
-                    break;
-                default:
-                    // Handle unknown feature types if necessary
-                    log.warn("Unknown feature type requested: {}", featureType);
+            response.setStatusText(
+                    "Bad Request: with the pair query:features argument must be omitted or only 'response_requested' with value 'complete' is allowed");
+        } else {
+            // Implement the logic to handle the query features command
+            // Depende de los specificadores que se hayan puesto en features... versions,
+            // profiles, pairs o rate_limits
+            List<String> requiredFeatures = features.getFeatures();
+            List<FeatureType> requiredFeatureTypes = new java.util.ArrayList<>();
+
+            for (String feature : requiredFeatures) {
+                requiredFeatureTypes.add(FeatureType.valueOf(feature));
             }
-            switch (featureType) {
-                case VERSIONS:
-                    // Add supported versions to the response
-                    //Es necesario averiguar si cada actuador podría tener una versión y esto debería ser una lista de versiones
-                    //Entonces el actuador tiene que tener un cmapo versión
-                    response.addResults(featureType, "1.0");
-                    break;
-                case PROFILES:
-                    // Add supported profiles to the response
-                    List<String> profileNames = registeredActuators.stream()
-                            .map(Actuator::getProfileName)
-                            .filter(name -> name != null && !name.isEmpty())
-                            .collect(Collectors.toList());
-                    response.addResults(featureType, args);
-                    break;
-                case "pairs":
-                    // Add supported action/target pairs to the response
-                    Map<String, List<String>> pairs = registeredActuators.stream()
-                            .flatMap(actuator -> actuator.getSupportedPairs().stream())
-                            .collect(Collectors.groupingBy(Map.Entry::getKey,
-                                    Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
-                    response.addFeature("pairs", pairs);
-                    break;
-                case "rate-limits":
-                    // Add rate limits to the response if applicable
-                    // This is a placeholder; implement rate limit logic as needed
-                    response.addFeature("rate-limits", Map.of("default", 100));
-                    break;
-                default:
-                    // Handle unknown feature types if necessary
-                    log.warn("Unknown feature type requested: {}", featureType);
+            for (FeatureType featureType : requiredFeatureTypes) {
+                switch (featureType) {
+                    case VERSIONS -> // Add supported versions to the response
+                        // Es necesario averiguar si cada actuador podría tener una versión y esto
+                        // debería ser una lista de versiones
+                        // Entonces el actuador tiene que tener un cmapo versión
+                        response.addResults(featureType.toString(), "1.0");
+                    case PROFILES -> {
+                        // Add supported profiles to the response
+                        List<String> profileNames = registeredActuators.stream()
+                                .map(Actuator::getProfileName)
+                                .filter(name -> name != null && !name.isEmpty())
+                                .collect(Collectors.toList());
+                        response.addResults(featureType.toString(), profileNames);
+                    }
+                    case PAIRS -> {
+                        // Add supported action/target pairs to the response
+                        Map<String, List<String>> pairs = new HashMap<>();
+                        for (Actuator actuator : registeredActuators) {
+                            actuator.getSupportedPairs().forEach((key, value) -> {
+                                if (pairs.containsKey(key)) {
+                                    pairs.get(key).addAll(value);
+                                } else {
+                                    pairs.put(key, value);
+                                }
+                            });
+                        }
+
+                        response.addResults(featureType.toString(), pairs);
+                    }
+                    case RATE_LIMIT -> response.addResults(featureType.toString(), Map.of("default", 100));
+                    default -> // Handle unknown feature types if necessary
+                        log.warn("Unknown feature type requested: {}", featureType);
+                }
             }
+            response.setStatus(200);
+            response.setStatusText("Query features executed successfully");
         }
-        //Tengo una lista con los tipos de feature solicitados, podrían ser
-        // versions, profiles, pairs y rate-limits
-        
-        response.setStatus(200);
-        response.setStatusText("Query features executed successfully");
         return response;
     }
-      /**
-     * Construcción de la respuesta OpenC2 a partir de la respuesta de cada uno de
+
+   /** Construcción de la respuesta OpenC2 a partir de la respuesta de cada uno de
      * los actuadores.
      * Esto está sin revisar, es sólo un esqueleto para que sirva de base
      * 
@@ -151,8 +135,7 @@ public class Openc2Consumer {
      * @return
      */
     private OpenC2Response aggregateResponses(List<Actuator> actuators, OpenC2Message command) {
-        // Estado si todo va bien
-        int finalStatusCode = 200;
+       
         OpenC2Response aggregatedResponse = new OpenC2Response();
         aggregatedResponse.setStatus(200);
 
@@ -160,9 +143,9 @@ public class Openc2Consumer {
         // La combinación de respuestas de los actuadores no está bien trabajada, hay
         // que pensarla bien
         for (Actuator actuator : actuators) {
-            try {
+            try { 
                 OpenC2Response response = actuator.solve(command);
-
+    
                 // Si alguno falla, el estado general deja de ser 200
                 if (response.getStatus() >= 400) {
                     aggregatedResponse.setStatus(207); // Exito parcial alguno tiene problemas
@@ -181,8 +164,9 @@ public class Openc2Consumer {
                 aggregatedResults.put(actuator.getProfileName(), Map.of("error", e.getMessage()));
             }
         }
+    
         aggregatedResponse.setResults(aggregatedResults);
-        return aggregatedResponse;
-    }
-
+        return aggregatedResponse; 
 }
+}
+
