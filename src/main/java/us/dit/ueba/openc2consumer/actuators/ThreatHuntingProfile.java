@@ -2,7 +2,6 @@ package us.dit.ueba.openc2consumer.actuators;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 import org.oasis.openc2.lycan.OpenC2Message;
 import org.oasis.openc2.lycan.OpenC2Response;
@@ -31,6 +30,11 @@ public class ThreatHuntingProfile extends ActuatorCommons {
         supportedPairs.put("query", Arrays.asList("th.huntflows"));
         supportedPairs.put("investigate", Arrays.asList("th.hunt"));
         this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public boolean supports(OpenC2Message command) {
+        return false;
     }
 
     public OpenC2Response solve(OpenC2Message message) {

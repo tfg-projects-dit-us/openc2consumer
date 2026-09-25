@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import us.dit.ueba.openc2consumer.services.Openc2Consumer;
+import us.dit.ueba.openc2consumer.services.OpenC2Consumer;
 
 /**
  * Recibe comandos OpenC2 en JSON mediante POST /openc2/command
@@ -96,12 +96,12 @@ public class OpenC2Controller {
 
     private static final Logger log = LoggerFactory.getLogger(OpenC2Controller.class);
 
-    private final Openc2Consumer openc2Consumer;
+    private final OpenC2Consumer openC2Consumer;
     private ObjectMapper objectMapper;
 
     // Spring inyecta automáticamente todas las clases que implementen 'Actuator'
-    public OpenC2Controller(Openc2Consumer consumer, ObjectMapper objectMapper) {
-        this.openc2Consumer = consumer;
+    public OpenC2Controller(OpenC2Consumer consumer, ObjectMapper objectMapper) {
+        this.openC2Consumer = consumer;
         this.objectMapper = objectMapper;
     }
 
@@ -114,7 +114,7 @@ public class OpenC2Controller {
             // lycanHOME/openc2-lycan-java/doc/org/oasis/openc2/lycan/OpenC2Message.html
             OpenC2Message command = objectMapper.readValue(rawJson, OpenC2Message.class);
             OpenC2Response openC2Response = new OpenC2Response();
-            openC2Response = openc2Consumer.solve(command);           
+            openC2Response = openC2Consumer.solve(command);
             restResponse = toResponseEntity(openC2Response);
         } catch (Exception e) {
             restResponse = ResponseEntity
@@ -126,7 +126,6 @@ public class OpenC2Controller {
         return restResponse;
     }
 
-  
     private ResponseEntity<String> toResponseEntity(OpenC2Response openC2Response) {
         ObjectMapper mapper = new ObjectMapper();
 
