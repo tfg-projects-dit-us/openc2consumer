@@ -1,6 +1,7 @@
 package us.dit.ueba.openc2consumer.services;
 
 import java.util.HashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,8 +17,16 @@ import org.springframework.stereotype.Service;
 
 import us.dit.ueba.openc2consumer.actuators.Actuator;
 
-@Service
-public class OpenC2Consumer {
+/**
+ * Servicio con las capacidades ofrecidas por un consumidro openc2 a cualquier
+ * controlador que permita la recepción de comandos y el envío de respuestas.
+ * Debe abstraerse de los detalles de red y centrarse en las funciones de
+ * consumidor El consumidor incluye una lista de actuadores en los que delega la
+ * ejecución de comandos de perfiles concretos El consumidor debe ejecutar los
+ * comandos obligatorios: query/features (por ejemplo), aunque para ello puede
+ * que tenga que interaccionar con los actuadores
+ */
+@Servic public class OpenC2Consumer {
     private static final Logger log = LoggerFactory.getLogger(OpenC2Consumer.class);
 
     private final List<Actuator> registeredActuators;
@@ -54,7 +63,9 @@ public class OpenC2Consumer {
             }
         }
         return openC2Response;
+        return openC2Response;
     }
+
 
     /**
      * Este método está desarrollado conforme al apartado 4.1 Query Command, del
@@ -62,7 +73,7 @@ public class OpenC2Consumer {
      * The 'query features' Command is REQUIRED for all Producers and Consumers
      * implementing OpenC2.
      */
-    public OpenC2Response queryFeatures(OpenC2Message command) {
+    public OpenC2Response manageQueryFeaturesCommand(OpenC2Message command) {
         OpenC2Response response = new OpenC2Response();
         Features features = command.getTarget().getFeatures();
         Args args = command.getArgs();
@@ -169,4 +180,5 @@ public class OpenC2Consumer {
         return aggregatedResponse; 
 }
 }
+
 

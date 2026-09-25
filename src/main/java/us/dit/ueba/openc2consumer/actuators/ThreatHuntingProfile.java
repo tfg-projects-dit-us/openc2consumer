@@ -27,28 +27,10 @@ public class ThreatHuntingProfile extends ActuatorCommons {
         this.supportedPairs = new HashMap<>();
         // Ahora mismo se pone en el código, todos los pares acción/objetivo que son
         // obligatorios para el perfil th
-        // Pero lo ideal es que se lea por configuraicón
-        supportedPairs.put("query", Arrays.asList("features", "th.huntflows"));
+        // Pero lo ideal es que se lea por configuración
+        supportedPairs.put("query", Arrays.asList("th.huntflows"));
         supportedPairs.put("investigate", Arrays.asList("th.hunt"));
         this.objectMapper = objectMapper;
-    }
-
-    /**
-     * Reconoce targets del perfil; la acción y los argumentos se validan en handle.
-     */
-    public boolean supports(OpenC2Message command) {
-        boolean isThreatHunting = false;
-        String action = command.getAction();
-        Target target = command.getTarget();
-        Features features = target.getFeatures();
-        List<String> featuresList = features.getFeatures();
-        // Esto ya se puede hacer usando supportedPairs, por ahora lo dejo
-        isThreatHunting = action.equals("query") && featuresList.contains("ht:huntflows")
-                || action.equals("query") && featuresList.contains("ht:hunt")
-                || action.equals("query") && featuresList.contains("ht:datasources")
-                || action.equals("investigate") && featuresList.contains("ht:hunt");
-
-        return isThreatHunting;
     }
 
     public OpenC2Response solve(OpenC2Message message) {
