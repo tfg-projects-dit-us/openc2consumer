@@ -5,6 +5,8 @@ import "google/protobuf/empty.proto";
 
 package us.dit.ueba.openc2consumer.proto;
 
+option java_package = "us.dit.ueba.openc2consumer.integrations.velociraptor.proto";
+
 message VQLRequest {
     string Name = 2;
     string VQL = 1;

@@ -1,0 +1,6 @@
+[
+  {
+    "path": "userlogon",
+    "args_required": {"username": "string"}
+  }
+]

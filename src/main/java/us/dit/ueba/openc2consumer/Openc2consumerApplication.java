@@ -20,9 +20,15 @@ package us.dit.ueba.openc2consumer;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * Punto de entrada del Consumer: arranca la aplicación con Spring Boot.
+ * Spring detecta los componentes de este paquete y sus subpaquetes
+ * y aplica la configuración necesaria para iniciar el servidor HTTP.
+ */
 @SpringBootApplication
 public class Openc2consumerApplication {
 
+    /** Inicia Spring Boot con los argumentos recibidos al ejecutar la aplicación. */
     public static void main(String[] args) {
         SpringApplication.run(Openc2consumerApplication.class, args);
     }

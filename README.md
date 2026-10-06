@@ -1,162 +1,84 @@
-# 🛡️ OpenC2 Consumer
+# OpenC2 Consumer
 
-> Agente SOAR que recibe comandos **OpenC2** desde el motor de procesos y los traduce en consultas **VQL** ejecutadas sobre el servidor [Velociraptor](https://docs.velociraptor.app/) configurado.
+Componente de [SOAR4FUEBA](https://github.com/tfg-projects-dit-us/SOAR4FUEBA) que recibe comandos OpenC2 por HTTP y los delega en los actuadores de cada perfil. Desarrollado en el marco del proyecto FUEBA+ (PID2024-155581OB-C21).
 
-![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen?logo=springboot)
-![gRPC](https://img.shields.io/badge/gRPC-1.77-blue?logo=grpc)
-![Maven](https://img.shields.io/badge/Maven-3.9-red?logo=apachemaven)
-![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen?logo=apache)
+## Estado actual
 
----
+Se utiliza OpenC2 1.0 con la librería Lycan. El perfil Threat Hunting (TH) permite:
 
-## Contexto
+- Consultar capacidades con `query features`: versión, perfiles y pares acción–objetivo disponibles.
+- Consultar el catálogo de huntflows, aplicar filtros y seleccionar campos con `return_format`.
+- Consultar las fuentes de datos por nombre o listar todas.
 
-Este componente forma parte del proyecto [SOAR4FUEBA](https://github.com/tfg-projects-dit-us/SOAR4FUEBA), una solución para la Orquestación, Automatización y Respuesta de seguridad (SOAR) que utiliza los estándares del OMG (BPMN y DMN) para la orquestación y automatización de procesos de seguridad en una organización.
+La lógica de `investigate` está preparada y se prueba con Mockito, pero el servicio actual usa catálogos JSON y no ejecuta investigaciones ni anuncia esa capacidad. La conexión de TH con la ejecución real en Velociraptor queda pendiente; no se implementa el perfil TH completo.
 
-Está desarrollada en el marco del proyecto de investigación PID2024-155581OB-C21 – Forensic UEBA: Detección temprana de ciberataques con custodia forense de evidencias digitales en entornos corporativos (FUEBA+)
+## Organización
 
----
+```text
+src/main/java/us/dit/ueba/openc2consumer/
+  core/                       # HTTP, validación, capacidades y selección de actuadores
+  profiles/th/                # Perfil TH, catálogos y contrato de investigación
+  integrations/velociraptor/  # Configuración gRPC, cliente y consultas VQL
 
-## 🔌 Cliente Velociraptor
-
-El stub gRPC se ha generado a partir del fichero `api.proto` de Velociraptor mediante `mvn clean compile`. Las clases generadas se crean en `target/generated-sources/protobuf/`:
-
-- **`Api.java`** — mensajes Protobuf (`VQLCollectorArgs`, `VQLResponse`…)
-- **`VqlApiGrpc.java`** — stub cliente (`VqlApiBlockingStub`, `VqlApiStub`)
-
-Para los tests se usa un servidor **gRPC in-process mock** (`InProcessServerBuilder`), por lo que no se requiere un Velociraptor real en el entorno de desarrollo (pruebas unidad).
-
----
-
-## Dependencias
-
-La arquitectura está basada en el modelo de datos OCSF, para la gestión de entidades OCSF se usa la librería [ocsf-java-tools] (https://github.com/tfg-projects-dit-us/ocsf-java-tools). Dado que no está disponible como artefacto en maven central, es necesario clonar y publicar el artefacto en el repo maven local ejecutando ./gradlew publishToMavenLocal
-
-La arquitectura utiliza openC2 como estándar para el envío de comandos. Para la gestión de mensajes openC2 se usa la librería [openc2-lycan-java](https://github.com/tfg-projects-dit-us/openc2-lycan-java). Dado que no está disponible como artefacto en maven central, es neceario clonar y publicar el artefacto en el repo maven local ejecutando mvn clean build
----
-
-## 🗺️ Flujo de la aplicación
-
-```mermaid
-flowchart LR
-    OC2([Motor OpenC2]) -->|Comando OpenC2| VqlService
-    subgraph openc2consumer [openc2consumer · Spring Boot]
-        VqlService["⚙️ VqlService"] --> QS["🔍 QuerySolver\n(New/Start/Add/Delete)"]
-        QS -->|lee fichero de artefacto| FS[(📂 Artefactos VQL)]
-        VqlService --> AB["🔧 ArgsBuilder\nVQLCollectorArgs"]
-    end
-    AB -->|gRPC / VQL| VR([🦖 Velociraptor])
+src/main/resources/
+  profiles/th/                       # huntflows.json y datasources.json
+  integrations/velociraptor/artifacts/
+  application.properties
 ```
 
----
+Las pruebas siguen la misma organización en `src/test/java`. `VqlQueries` reúne las consultas para cargar artefactos, iniciar monitorización y añadir o eliminar usuarios.
 
-## 📋 Configuración necesaria
+## Preparación y ejecución
 
-Los tipos de evidencia disponibles se declaran en el fichero de configuración `application.properties`, en la propiedad `ueba.evidences`, que será un listado de nombres de evidencias.
+Se necesitan un JDK compatible con las dependencias y Maven. El `pom.xml` configura Java 17 como nivel de compilación.
 
-Para cada uno es necesario guardar el fichero de artefacto en el directorio indicado en la propiedad `artifacts.path`
+Instalar primero [openc2-lycan-java](https://github.com/tfg-projects-dit-us/openc2-lycan-java) en el repositorio Maven local, ejecutando en su proyecto:
 
-Convenciones de configuración:
-* El nombre de fichero sigue la convención `evidencetype.artifact`.
-* El nombre del artefacto `UEBA.SOAR.evidencetype`.
-* Si el artefacto va a permitir añadir usuarios dinámicamente a la monitorización, la tabla de usuarios debe llamarse como la evidencia, con el prefijo `Service` (`Service.evidencetype`)
-
----
-
-## 📋 Operaciones por evidencia
-
-Para cada tipo se ofrecen **cuatro operaciones** y **un único fichero de configuración** que es el artefacto.
-
-Las consultas VQL generadas usan como nombre de artefacto `UEBA.SOAR.evidencetype` y como nombre de tabla `Service.evidencetype`.
-
-| # | Operación | Descripción |
-|---|-----------|-------------|
-| 1 | 📦 Cargar artefacto | Registra el artefacto `UEBA.SOAR.evidencetype` en Velociraptor |
-| 2 | ▶️ Iniciar monitorización | Lanza la recolección sobre la tabla `Service.evidencetype` |
-| 3 | ➕ Añadir usuario | Añade un usuario a la monitorización activa |
-| 4 | ➖ Eliminar usuario | Elimina un usuario de la monitorización activa |
-
----
-
-## 🏗️ Arquitectura de la solución
-
-### Diagrama de componentes
-
-```mermaid
-classDiagram
-    class VqlInterface {
-        <<interface>>
-        +sendNewArtefact(String evidenceType) void
-        +startMonitoring(String evidenceType) void
-        +addUser(String evidenceType, String username) void
-        +deleteUser(String evidenceType, String username) void
-    }
-    class EvidenceTypes {
-        <<configuration>>
-        +getEvidences() List<String>
-    }
-    class VqlService {
-        +sendNewArtefact(String evidenceType) void
-        +startMonitoring(String evidenceType) void
-        +addUser(String evidenceType, String username) void
-        +deleteUser(String evidenceType, String username) void
-    }
-    class QuerySolver {
-        <<interface>>
-        +getQuery() String
-    }
-    class ArgsBuilder {
-        +buildArgs() VQLCollectorArgs
-        +setVariable(key, value)
-    }
-    class NewArtifactQuerySolver { +getQuery() String }
-    class StartMonitoringQuerySolver { +getQuery() String }
-    class AddUserQuerySolver { +getQuery() String }
-    class DeleteUserQuerySolver { +getQuery() String }
-
-    VqlInterface --> EvidenceType
-    VqlService ..|> VqlInterface
-    VqlService --> ArgsBuilder
-    ArgsBuilder --> QuerySolver
-    QuerySolver <|.. NewArtifactQuerySolver
-    QuerySolver <|.. StartMonitoringQuerySolver
-    QuerySolver <|.. AddUserQuerySolver
-    QuerySolver <|.. DeleteUserQuerySolver
+```shell
+mvn clean install
 ```
 
-### Estructura de ficheros
+Después, desde este repositorio:
 
+```shell
+mvn clean compile
+mvn test
+mvn spring-boot:run
 ```
-src/
-├── main/
-│   ├── java/us/dit/ueba/openc2consumer/
-│   │   ├── Openc2consumerApplication.java        # Punto de entrada Spring Boot
-│   │   ├── config/
-│   │   │   └── VelociraptorConfig.java           # Beans gRPC: ManagedChannel, stubs síncrono y asíncrono
-│   │   │   └── EvidenceTypes.java                # Crea la lista de evidencias disponibles, a partir de application.properties
-│   │   └── services/
-│   │       └── vql/
-│   │           ├── VqlInterface.java                 # Interfaz principal con el enum EvidenceType
-│   │           ├── VqlService.java                   # Servicio Spring que envía consultas VQL a Velociraptor vía gRPC
-│   │           ├── ArgsBuilder.java                  # Construye VQLCollectorArgs usando la convención UEBA.SOAR.evidencetype
-│   │           ├── QuerySolver.java                  # Interfaz que define getQuery(): cada implementación devuelve la VQL adecuada
-│   │           ├── StartMonitoringQuerySolver.java   # QuerySolver para iniciar monitorización (tabla Service.evidencetype)
-│   │           ├── NewArtifactQuerySolver.java       # QuerySolver para registrar el artefacto UEBA.SOAR.evidencetype
-│   │           ├── AddUserQuerySolver.java           # QuerySolver para añadir un usuario a la monitorización
-│   │           └── DeleteUserQuerySolver.java        # QuerySolver para eliminar un usuario de la monitorización
-│   ├── proto/
-│   │   └── api.proto                             # Definición Protobuf del API gRPC de Velociraptor
-│   └── resources/
-│       ├── application.properties                # Configuración: velociraptor y evidencias
-│       └── UEBA.SOAR.logon                       # Fichero de artefacto de ejemplo (tipo de evidencia: logon)
-├── test/
-│   ├── java/us/dit/ueba/openc2consumer/
-│   │   ├── config/
-│   │   │   └── TestVelociraptorConfig.java       # Configuración de test: servidor gRPC in-process mock
-│   │   └── services/
-│   │       └── vql/
-│   │           └── VqlTests.java                 # Tests de las operaciones VQL
-│   └── resources/
-│       └── application.properties                # Propiedades para tests: perfil test, ruta artefactos, log level
+
+La compilación genera el cliente gRPC a partir de `src/main/proto/api.proto`. Las pruebas unitarias usan Mockito y un servidor gRPC simulado, sin necesitar un Velociraptor real.
+
+## Configuración
+
+Los catálogos de TH se cargan al arrancar desde `src/main/resources/profiles/th/`. El de huntflows incluye `userlogon`; el de fuentes de datos comienza vacío. Para añadir entradas, editar los JSON y reiniciar. También se pueden usar archivos externos:
+
+```properties
+openc2.th.huntflows-location=file:C:/ruta/huntflows.json
+openc2.th.datasources-location=file:C:/ruta/datasources.json
 ```
+
+En `application.properties` se configura Velociraptor mediante `velociraptor.*`, y el cliente VQL mediante `ueba.evidences`, `ueba.user.vigilancelevels` y `artifacts.path`. Cada evidencia requiere un archivo `<evidencia>.artifact`, con artefacto `UEBA.SOAR.<evidencia>` y tabla de usuarios `Service.<evidencia>` cuando corresponda. Esta configuración no añade huntflows al catálogo TH.
+
+## Comandos OpenC2
+
+Enviar peticiones a `POST /openc2/command` con `Content-Type: application/openc2+json;version=1.0`.
+
+```json
+{"action":"query","target":{"features":["versions","profiles","pairs"]}}
+```
+
+```json
+{"action":"query","target":{"th":{"huntflows":{}}}}
+```
+
+```json
+{"action":"query","target":{"th":{"datasources":""}}}
+```
+
+Los filtros de huntflows admiten `path` absoluto, `arg_names`, `arg_types`, `tags` y `format_types`. Se combinan con AND. `return_format` selecciona `path`, `uniqueId`, `version`, `args_required`, `expected_returns` o `script`. Las consultas sin coincidencias devuelven una lista vacía con estado 200.
+
+La validación de investigaciones contempla huntflows sin argumentos o con hasta un `string` y un `integer`, según `args_required`. Varios argumentos del mismo tipo, tipos complejos, opciones temporales y ejecución asíncrona quedan pendientes. Actualmente `investigate` devuelve 501 porque el servicio JSON no ejecuta investigaciones.
+
+## Licencia
+
+Apache 2.0.
