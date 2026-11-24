@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Profile;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.VqlApiGrpc;
+import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.APIGrpc;
 
 /**
  * Prepara el canal gRPC y los clientes que permiten enviar peticiones a Velociraptor.
@@ -54,13 +54,13 @@ public class VelociraptorConfig {
 
     /** Crea el cliente que utiliza VqlService para enviar consultas y leer sus respuestas. */
     @Bean
-    public VqlApiGrpc.VqlApiBlockingStub velociraptorBlockingStub(ManagedChannel channel) {
-        return VqlApiGrpc.newBlockingStub(channel);
+    public APIGrpc.APIBlockingStub velociraptorBlockingStub(ManagedChannel channel) {
+        return APIGrpc.newBlockingStub(channel);
     }
 
     /** Crea un cliente que recibe las respuestas mediante callbacks; VqlService no lo utiliza. */
     @Bean
-    public VqlApiGrpc.VqlApiStub velociraptorAsyncStub(ManagedChannel channel) {
-        return VqlApiGrpc.newStub(channel);
+    public APIGrpc.APIStub velociraptorAsyncStub(ManagedChannel channel) {
+        return APIGrpc.newStub(channel);
     }
 }

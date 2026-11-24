@@ -18,18 +18,18 @@ import us.dit.ueba.openc2consumer.integrations.velociraptor.config.EvidenceTypes
 import us.dit.ueba.openc2consumer.integrations.velociraptor.config.VigilanceLevels;
 import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.Api.VQLCollectorArgs;
 import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.Api.VQLResponse;
-import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.VqlApiGrpc.VqlApiBlockingStub;
+import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.APIGrpc.APIBlockingStub;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class VqlServiceTest {
     @TempDir Path artifacts;
-    private VqlApiBlockingStub stub;
+    private APIBlockingStub stub;
     private VqlService service;
 
     @BeforeEach
     void setUp() throws Exception {
-        stub = mock(VqlApiBlockingStub.class);
+        stub = mock(APIBlockingStub.class);
         var types = new EvidenceTypes();
         types.setEvidences(List.of("userlogon", "usersession"));
         var levels = new VigilanceLevels();

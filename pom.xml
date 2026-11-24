@@ -123,6 +123,9 @@
 				<version>4.0.3</version>
 				<configuration>
 					<protoc>${protobuf-java.version}</protoc>
+					<sourceDirectories>
+						<sourceDirectory>${project.basedir}/src/main/proto</sourceDirectory>
+					</sourceDirectories>
 					<binaryMavenPlugins>
 						<binaryMavenPlugin>
 							<groupId>io.grpc</groupId>

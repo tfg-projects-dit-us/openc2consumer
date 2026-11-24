@@ -28,9 +28,9 @@ import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.Api.VQLCollectorArgs;
 import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.Api.VQLResponse;
-import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.VqlApiGrpc;
-import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.VqlApiGrpc.VqlApiBlockingStub;
-import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.VqlApiGrpc.VqlApiStub;
+import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.APIGrpc;
+import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.APIGrpc.APIBlockingStub;
+import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.APIGrpc.APIStub;
 
 /** Servidor gRPC simulado dentro del proceso: devuelve un log, pero no interpreta ni ejecuta VQL. */
 @TestConfiguration
@@ -42,7 +42,7 @@ public class TestVelociraptorConfig {
     public Server grpcTestServer() throws Exception {
         return InProcessServerBuilder.forName(SERVER_NAME)
                 .directExecutor()
-                .addService(new VqlApiGrpc.VqlApiImplBase() {
+                .addService(new APIGrpc.APIImplBase() {
                     @Override
                     public void query(VQLCollectorArgs request, StreamObserver<VQLResponse> responseObserver) {
                         responseObserver.onNext(VQLResponse.newBuilder()
@@ -65,13 +65,13 @@ public class TestVelociraptorConfig {
 
     @Bean
     @Primary
-    public VqlApiBlockingStub velociraptorBlockingStub(ManagedChannel velociraptorChannel) {
-        return VqlApiGrpc.newBlockingStub(velociraptorChannel);
+    public APIBlockingStub velociraptorBlockingStub(ManagedChannel velociraptorChannel) {
+        return APIGrpc.newBlockingStub(velociraptorChannel);
     }
 
     @Bean
     @Primary
-    public VqlApiStub velociraptorAsyncStub(ManagedChannel velociraptorChannel) {
-        return VqlApiGrpc.newStub(velociraptorChannel);
+    public APIStub velociraptorAsyncStub(ManagedChannel velociraptorChannel) {
+        return APIGrpc.newStub(velociraptorChannel);
     }
 }

@@ -30,8 +30,8 @@ import us.dit.ueba.openc2consumer.integrations.velociraptor.config.EvidenceTypes
 import us.dit.ueba.openc2consumer.integrations.velociraptor.config.VigilanceLevels;
 import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.Api.VQLCollectorArgs;
 import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.Api.VQLResponse;
-import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.VqlApiGrpc;
-import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.VqlApiGrpc.VqlApiBlockingStub;
+import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.APIGrpc;
+import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.APIGrpc.APIBlockingStub;
 
 /**
  * Prepara y envía las consultas VQL para registrar artefactos, iniciar su monitorización
@@ -45,14 +45,14 @@ import us.dit.ueba.openc2consumer.integrations.velociraptor.proto.VqlApiGrpc.Vql
 
 public class VqlService implements VqlInterface {
 
-    private final VqlApiBlockingStub blockingStub;
+    private final APIBlockingStub blockingStub;
     private final String artifactsPath;
     private final EvidenceTypes evidenceTypes;
     private final VigilanceLevels vigilanceLevels;
     private static final Logger log = LoggerFactory.getLogger(VqlService.class);
 
     /** Recibe el cliente de conexión y la configuración que necesitan las consultas. */
-    public VqlService(VqlApiBlockingStub blockingStub,
+    public VqlService(APIBlockingStub blockingStub,
             @Value("${artifacts.path}") String artifactsPath,
             EvidenceTypes evidenceTypes, VigilanceLevels vigilanceLevels) {
         this.blockingStub = blockingStub;
@@ -63,7 +63,7 @@ public class VqlService implements VqlInterface {
 
     /** Devuelve la descripción del servicio gRPC definida en el protocolo. */
     public String getServiceDescriptor() {
-        return VqlApiGrpc.getServiceDescriptor().toString();
+        return APIGrpc.getServiceDescriptor().toString();
     }
 
     /**

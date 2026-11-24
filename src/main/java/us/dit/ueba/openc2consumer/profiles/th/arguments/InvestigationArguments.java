@@ -21,6 +21,12 @@ public final class InvestigationArguments {
     }
 
     /** Valida los tipos, la cantidad y los valores antes de construir el mapa de argumentos. */
+    /**
+     * Valida los argumentos recibidos para un huntflow y devuelve un mapa de nombre a valor.
+     * @param huntflow 
+     * @param arguments
+     * @return
+     */
     public static Map<String, Object> validate(HuntflowInfo huntflow, HuntArgs arguments) {
         Map<String, String> requiredArguments = huntflow.argsRequired();
         if (requiredArguments == null) {

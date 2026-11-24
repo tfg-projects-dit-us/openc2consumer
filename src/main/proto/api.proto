@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 
 
-package us.dit.ueba.openc2consumer.proto;
+package proto;
 
 option java_package = "us.dit.ueba.openc2consumer.integrations.velociraptor.proto";
 
@@ -70,7 +70,7 @@ message PushEventRequest {
     bool write = 7;
 }
 
-service VqlApi {
+service API {
    rpc Query(VQLCollectorArgs) returns (stream VQLResponse) {}
    rpc VFSGetBuffer(VFSFileBuffer) returns (VFSFileBuffer) {}
    rpc PushEvents(PushEventRequest) returns (google.protobuf.Empty) {}
